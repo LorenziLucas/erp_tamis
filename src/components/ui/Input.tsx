@@ -1,0 +1,66 @@
+import { cn } from '../../lib/utils'
+import type { InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react'
+import { forwardRef } from 'react'
+
+const fieldBase = 'bg-[#0d1117] border border-[#30363d] rounded-md text-gray-200 text-sm placeholder-gray-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors w-full disabled:opacity-50'
+
+export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement> & { error?: string }>(
+  ({ className, error, ...props }, ref) => (
+    <div className="w-full">
+      <input
+        ref={ref}
+        {...props}
+        className={cn(fieldBase, 'h-8 px-3', error && 'border-red-500 focus:border-red-500 focus:ring-red-500', className)}
+      />
+      {error && <p className="mt-1 text-xs text-red-400">{error}</p>}
+    </div>
+  )
+)
+Input.displayName = 'Input'
+
+export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSelectElement> & { error?: string }>(
+  ({ className, error, children, ...props }, ref) => (
+    <div className="w-full">
+      <select
+        ref={ref}
+        {...props}
+        className={cn(fieldBase, 'h-8 px-3 cursor-pointer', error && 'border-red-500', className)}
+      >
+        {children}
+      </select>
+      {error && <p className="mt-1 text-xs text-red-400">{error}</p>}
+    </div>
+  )
+)
+Select.displayName = 'Select'
+
+export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<HTMLTextAreaElement> & { error?: string }>(
+  ({ className, error, ...props }, ref) => (
+    <div className="w-full">
+      <textarea
+        ref={ref}
+        {...props}
+        className={cn(fieldBase, 'px-3 py-2 resize-none', error && 'border-red-500', className)}
+      />
+      {error && <p className="mt-1 text-xs text-red-400">{error}</p>}
+    </div>
+  )
+)
+Textarea.displayName = 'Textarea'
+
+export function FormField({ label, error, required, children }: {
+  label: string
+  error?: string
+  required?: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <div className="space-y-1">
+      <label className="block text-xs font-medium text-gray-400 uppercase tracking-wide">
+        {label}{required && <span className="text-red-400 ml-1">*</span>}
+      </label>
+      {children}
+      {error && <p className="text-xs text-red-400">{error}</p>}
+    </div>
+  )
+}
