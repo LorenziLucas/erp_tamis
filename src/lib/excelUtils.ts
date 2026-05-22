@@ -264,7 +264,6 @@ export function importXlsx(file: File, existingLotes: Lote[] = []): Promise<Impo
 
             lotes.push({
               id: generateId(),
-              trt,
               regiao: regiaoLabel,
               ...candidate,
               analise: analise as '1ª' | '2ª',
