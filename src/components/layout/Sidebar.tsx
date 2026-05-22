@@ -7,7 +7,7 @@ import {
 } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { useLotesStore } from '../../store/lotesStore'
-import { useAuthStore } from '../../store/authStore'
+import { useAuth } from '../../contexts/AuthContext'
 
 // ── Itens de cada grupo ───────────────────────────────────────────────────────
 const LOTES_ITEMS = [
@@ -24,8 +24,8 @@ interface Props {
 
 export function Sidebar({ collapsed, onToggle }: Props) {
   const count    = useLotesStore((s) => s.lotes.length)
-  const username = useAuthStore((s) => s.username)
-  const logout   = useAuthStore((s) => s.logout)
+  const { user, logout } = useAuth()
+  const username = user?.email ?? ''
   const navigate = useNavigate()
 
   const clearAll = useLotesStore((s) => s.clearAll)
@@ -36,8 +36,8 @@ export function Sidebar({ collapsed, onToggle }: Props) {
   const location = useLocation()
   const isLoteActive = location.pathname === '/' || location.pathname.startsWith('/lotes')
 
-  const handleLogout = () => {
-    logout()
+  const handleLogout = async () => {
+    await logout()
     navigate('/login', { replace: true })
   }
 

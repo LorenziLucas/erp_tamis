@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Search, PlusCircle, Upload, Download, X,
@@ -45,9 +45,14 @@ function loteSearchable(l: Lote): string {
 
 export default function LotesPage() {
   const lotes       = useLotesStore((s) => s.lotes)
+  const fetchLotes  = useLotesStore((s) => s.fetchLotes)
   const updateLote  = useLotesStore((s) => s.updateLote)
   const deleteLote  = useLotesStore((s) => s.deleteLote)
-  const { success } = useToast()
+  const loading     = useLotesStore((s) => s.loading)
+  const { success, error: toastError } = useToast()
+
+  // Garante que os lotes estejam carregados ao entrar na página
+  useEffect(() => { fetchLotes() }, [fetchLotes])
 
   const [query,        setQuery]        = useState('')
   const [filterMesRef, setFilterMesRef] = useState('')
@@ -117,15 +122,15 @@ export default function LotesPage() {
     </th>
   )
 
-  const handleUpdate = (data: LoteFormData & { regiao: string; qtdDias: number }) => {
+  const handleUpdate = async (data: LoteFormData & { regiao: string; qtdDias: number }) => {
     if (!editLote) return
-    updateLote(editLote.id, data)
+    await updateLote(editLote.id, data)
     success('Lote atualizado com sucesso!')
     setEditLote(null)
   }
 
-  const handleDelete = (id: string) => {
-    deleteLote(id)
+  const handleDelete = async (id: string) => {
+    await deleteLote(id)
     success('Lote excluído.')
     setDeleteId(null)
   }

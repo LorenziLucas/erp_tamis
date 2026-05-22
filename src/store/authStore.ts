@@ -1,33 +1,53 @@
+/**
+ * authStore — compatibilidade de interface mantida para não quebrar o App.tsx.
+ * A autenticação real agora é feita via AuthContext + Supabase Auth.
+ * Este store é um espelho reativo da sessão do Supabase.
+ */
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
-
-/** Credenciais locais fixas — adicione pares aqui para novos usuários */
-const USERS: Record<string, string> = {
-  TAMIS: 'gestaodelotes',
-}
+import { supabase } from '../lib/supabaseClient'
 
 interface AuthState {
   isAuthenticated: boolean
   username: string
-  login: (username: string, password: string) => boolean
-  logout: () => void
+  loading: boolean
+  /** @deprecated Use AuthContext.login() — mantido para compatibilidade */
+  login: (email: string, password: string) => Promise<boolean>
+  logout: () => Promise<void>
 }
 
-export const useAuthStore = create<AuthState>()(
-  persist(
-    (set) => ({
-      isAuthenticated: false,
-      username: '',
+export const useAuthStore = create<AuthState>((set) => {
+  // Sincroniza com o listener do Supabase Auth
+  supabase.auth.onAuthStateChange((_event, session) => {
+    set({
+      isAuthenticated: !!session,
+      username: session?.user?.email ?? '',
+      loading: false,
+    })
+  })
 
-      login: (username, password) => {
-        const key = username.trim().toUpperCase()
-        const ok = USERS[key] === password
-        if (ok) set({ isAuthenticated: true, username: key })
-        return ok
-      },
+  // Carrega sessão existente na inicialização
+  supabase.auth.getSession().then(({ data: { session } }) => {
+    set({
+      isAuthenticated: !!session,
+      username: session?.user?.email ?? '',
+      loading: false,
+    })
+  })
 
-      logout: () => set({ isAuthenticated: false, username: '' }),
-    }),
-    { name: 'gestao-lotes-auth' }
-  )
-)
+  return {
+    isAuthenticated: false,
+    username: '',
+    loading: true,
+
+    login: async (email: string, password: string) => {
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) return false
+      return true
+    },
+
+    logout: async () => {
+      await supabase.auth.signOut()
+      set({ isAuthenticated: false, username: '' })
+    },
+  }
+})

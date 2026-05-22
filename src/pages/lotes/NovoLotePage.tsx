@@ -11,8 +11,8 @@ export default function NovoLotePage() {
   const addLote = useLotesStore((s) => s.addLote)
   const { success } = useToast()
 
-  const handleSubmit = (data: LoteFormData & { regiao: string; qtdDias: number }) => {
-    addLote(data)
+  const handleSubmit = async (data: LoteFormData & { regiao: string; qtdDias: number }) => {
+    await addLote(data)
     success('Lote cadastrado com sucesso!')
     navigate('/lotes')
   }

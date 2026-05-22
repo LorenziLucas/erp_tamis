@@ -1,73 +1,121 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
 import type { Lote } from '../types'
-import { generateId, calcDias } from '../lib/utils'
+import { calcDias } from '../lib/utils'
+import {
+  listarLotes,
+  criarLote,
+  criarLotes,
+  atualizarLote,
+  deletarLote,
+} from '../services/lotesService'
 
 interface LotesState {
-  lotes: Lote[]
-  addLote: (lote: Omit<Lote, 'id'>) => void
-  addLotes: (lotes: Omit<Lote, 'id'>[]) => void
-  updateLote: (id: string, data: Partial<Lote>) => void
-  deleteLote: (id: string) => void
-  clearAll: () => void
+  lotes:   Lote[]
+  loading: boolean
+  error:   string | null
+
+  // Sincronização com Supabase
+  fetchLotes: () => Promise<void>
+
+  // Mutações (chamam o serviço e atualizam o estado local)
+  addLote:    (lote: Omit<Lote, 'id'>) => Promise<void>
+  addLotes:   (lotes: Omit<Lote, 'id'>[]) => Promise<{ imported: number; errors: string[] }>
+  updateLote: (id: string, data: Partial<Lote>) => Promise<void>
+  deleteLote: (id: string) => Promise<void>
+  clearAll:   () => void
+
+  // Migrações locais (apenas para dados herdados do localStorage — remover no futuro)
   migrateQtdDias: () => void
   migrateMesRef:  () => void
 }
 
-export const useLotesStore = create<LotesState>()(
-  persist(
-    (set) => ({
-      lotes: [],
+export const useLotesStore = create<LotesState>((set, get) => ({
+  lotes:   [],
+  loading: false,
+  error:   null,
 
-      addLote: (lote) =>
-        set((state) => ({ lotes: [...state.lotes, { ...lote, id: generateId() }] })),
+  // ── Fetch ────────────────────────────────────────────────────────────────────
 
-      addLotes: (incoming) =>
-        set((state) => ({
-          lotes: [
-            ...state.lotes,
-            ...incoming.map((l) => ({ ...l, id: generateId() })),
-          ],
-        })),
+  fetchLotes: async () => {
+    set({ loading: true, error: null })
+    const { data, error } = await listarLotes()
+    if (error) {
+      set({ loading: false, error: String(error.message ?? error) })
+      return
+    }
+    set({ lotes: data, loading: false })
+  },
 
-      updateLote: (id, data) =>
-        set((state) => ({
-          lotes: state.lotes.map((l) => (l.id === id ? { ...l, ...data } : l)),
-        })),
+  // ── Mutações ─────────────────────────────────────────────────────────────────
 
-      deleteLote: (id) =>
-        set((state) => ({ lotes: state.lotes.filter((l) => l.id !== id) })),
+  addLote: async (lote) => {
+    const { data, error } = await criarLote(lote)
+    if (error || !data) {
+      set({ error: String((error as Error)?.message ?? 'Erro ao criar lote') })
+      return
+    }
+    set((state) => ({ lotes: [data, ...state.lotes] }))
+  },
 
-      clearAll: () => set({ lotes: [] }),
+  addLotes: async (incoming) => {
+    const errors: string[] = []
+    const { data, error } = await criarLotes(incoming)
+    if (error) {
+      errors.push(String((error as Error)?.message ?? 'Erro ao importar lotes'))
+      return { imported: 0, errors }
+    }
+    if (data.length > 0) {
+      set((state) => ({ lotes: [...data, ...state.lotes] }))
+    }
+    return { imported: data.length, errors }
+  },
 
-      // Migração 1: aplica a regra calcDias a todos os lotes existentes.
-      // envio === entrega → 1 dia; entrega vazia → 0 dias.
-      migrateQtdDias: () =>
-        set((state) => ({
-          lotes: state.lotes.map((l) => ({
-            ...l,
-            qtdDias: calcDias(l.envio, l.entrega),
-          })),
-        })),
+  updateLote: async (id, partial) => {
+    const { data, error } = await atualizarLote(id, partial)
+    if (error || !data) {
+      set({ error: String((error as Error)?.message ?? 'Erro ao atualizar lote') })
+      return
+    }
+    set((state) => ({
+      lotes: state.lotes.map((l) => (l.id === id ? data : l)),
+    }))
+  },
 
-      // Migração 2: normaliza mesRef para YYYY-MM-01 baseado em entrega (se preenchida) ou envio.
-      // Garante que o mês de referência seja sempre o 1º dia do mês correto, sem ambiguidade de fuso.
-      migrateMesRef: () =>
-        set((state) => ({
-          lotes: state.lotes.map((l) => {
-            const base = (l.entrega || l.envio || '').trim()
-            if (!base) return l
-            const parts = base.split('-')
-            if (parts.length < 2) return l
-            return { ...l, mesRef: `${parts[0]}-${parts[1]}-01` }
-          }),
-        })),
-    }),
-    { name: 'gestao-lotes-store' }
-  )
-)
+  deleteLote: async (id) => {
+    const { error } = await deletarLote(id)
+    if (error) {
+      set({ error: String((error as Error)?.message ?? 'Erro ao deletar lote') })
+      return
+    }
+    set((state) => ({ lotes: state.lotes.filter((l) => l.id !== id) }))
+  },
 
-// Derived selectors
+  clearAll: () => set({ lotes: [] }),
+
+  // ── Migrações legacy (localStorage → mantidas para não quebrar importações antigas) ──
+
+  migrateQtdDias: () =>
+    set((state) => ({
+      lotes: state.lotes.map((l) => ({
+        ...l,
+        qtdDias: calcDias(l.envio, l.entrega),
+      })),
+    })),
+
+  migrateMesRef: () =>
+    set((state) => ({
+      lotes: state.lotes.map((l) => {
+        const base = (l.entrega || l.envio || '').trim()
+        if (!base) return l
+        const parts = base.split('-')
+        if (parts.length < 2) return l
+        return { ...l, mesRef: `${parts[0]}-${parts[1]}-01` }
+      }),
+    })),
+}))
+
+// ── Derived selectors (inalterados — operam sobre o array em memória) ─────────
+
 export function selectKpis(lotes: Lote[]) {
   const total      = lotes.length
   const valorTotal = lotes.reduce((s, l) => s + l.valorDevido, 0)
@@ -98,8 +146,6 @@ export function selectByMes(lotes: Lote[]) {
   const map: Record<string, { lotes: number; valor: number; qtd: number }> = {}
   for (const l of lotes) {
     if (!l.mesRef) continue
-    // Extrai ano e mês direto da string ISO (YYYY-MM-DD) sem criar Date,
-    // evitando o deslocamento de fuso horário (UTC vs horário local).
     const parts = l.mesRef.split('-')
     if (parts.length < 2) continue
     const key = `${parts[0]}-${parts[1]}`
@@ -112,7 +158,6 @@ export function selectByMes(lotes: Lote[]) {
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([key, v]) => {
       const [year, month] = key.split('-').map(Number)
-      // new Date(year, month-1, 1) usa horário local — sem risco de deslocamento
       const label = new Date(year, month - 1, 1)
         .toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' })
         .replace('.', '')

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import {
   Chart as ChartJS,
   CategoryScale, LinearScale, BarElement, LineElement, PointElement,
@@ -394,9 +394,16 @@ function MultiSelect({
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 export default function Dashboard() {
-  const lotes = useLotesStore((s) => s.lotes)
+  const lotes      = useLotesStore((s) => s.lotes)
+  const fetchLotes = useLotesStore((s) => s.fetchLotes)
+  const loading    = useLotesStore((s) => s.loading)
+  const storeError = useLotesStore((s) => s.error)
 
-  // ── Filtros ──────────────────────────────────────────────────────────────────
+  // Carrega lotes do Supabase ao montar
+  const fetchOnce = useCallback(() => { fetchLotes() }, [fetchLotes])
+  useEffect(() => { fetchOnce() }, [fetchOnce])
+
+  // ── Filtros (hooks sempre antes de qualquer return condicional) ───────────────
   const [filterAno,    setFilterAno]    = useState<string[]>([])
   const [filterMes,    setFilterMes]    = useState<string[]>([])
   const [filterRegiao, setFilterRegiao] = useState<string[]>([])
@@ -449,6 +456,28 @@ export default function Dashboard() {
       return { key, label }
     })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Returns condicionais — SEMPRE após todos os hooks ───────────────────────
+  if (loading && lotes.length === 0) {
+    return (
+      <div className="p-8 flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-3">
+          <span className="w-8 h-8 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+          <span className="text-sm text-gray-500">Carregando lotes…</span>
+        </div>
+      </div>
+    )
+  }
+
+  if (storeError) {
+    return (
+      <div className="p-8">
+        <div className="bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3 text-sm text-red-400">
+          Erro ao carregar dados: {storeError}
+        </div>
+      </div>
+    )
+  }
 
   if (lotes.length === 0) {
     return (

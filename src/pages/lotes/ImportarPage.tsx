@@ -50,14 +50,15 @@ export default function ImportarPage() {
     if (!file) return
     setStage('importing')
     const result = await importXlsx(file, lotes)   // passa base existente para deduplicação
-    addLotes(result.lotes)
-    setImported(result.lotes.length)
+    const { imported: importedCount, errors: saveErrors } = await addLotes(result.lotes)
+    const allErrors = [...result.errors, ...saveErrors]
+    setImported(importedCount)
     setDuplicates(result.duplicates)
-    setImportErrors(result.errors)
+    setImportErrors(allErrors)
     setStage('done')
-    if (result.lotes.length > 0) {
+    if (importedCount > 0) {
       const dupMsg = result.duplicates > 0 ? ` (${result.duplicates} duplicata(s) ignorada(s))` : ''
-      success(`${result.lotes.length} lote(s) importado(s) com sucesso!${dupMsg}`)
+      success(`${importedCount} lote(s) importado(s) com sucesso!${dupMsg}`)
     } else if (result.duplicates > 0) {
       toastError(`Todos os ${result.duplicates} registro(s) já existem na base — nenhum importado.`)
     } else {

@@ -1,40 +1,39 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, LogIn, ShieldCheck } from 'lucide-react'
-import { useAuthStore } from '../store/authStore'
+import { useAuth } from '../contexts/AuthContext'
 
 export default function LoginPage() {
-  const login    = useAuthStore((s) => s.login)
-  const navigate = useNavigate()
+  const { login } = useAuth()
+  const navigate  = useNavigate()
 
-  const [username,  setUsername]  = useState('')
-  const [password,  setPassword]  = useState('')
-  const [showPass,  setShowPass]  = useState(false)
-  const [error,     setError]     = useState('')
-  const [loading,   setLoading]   = useState(false)
-  const [shake,     setShake]     = useState(false)
+  const [email,    setEmail]    = useState('')
+  const [password, setPassword] = useState('')
+  const [showPass, setShowPass] = useState(false)
+  const [error,    setError]    = useState('')
+  const [loading,  setLoading]  = useState(false)
+  const [shake,    setShake]    = useState(false)
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
-    if (!username.trim() || !password) {
-      setError('Preencha usuário e senha.')
+    if (!email.trim() || !password) {
+      setError('Preencha e-mail e senha.')
       return
     }
     setLoading(true)
     setError('')
 
-    // Pequeno delay para feedback visual
-    setTimeout(() => {
-      const ok = login(username, password)
-      if (ok) {
-        navigate('/', { replace: true })
-      } else {
-        setError('Usuário ou senha incorretos.')
-        setShake(true)
-        setTimeout(() => setShake(false), 600)
-      }
-      setLoading(false)
-    }, 400)
+    const { error: authError } = await login(email.trim(), password)
+
+    if (!authError) {
+      navigate('/', { replace: true })
+    } else {
+      // Mensagem amigável — não expõe detalhes internos do Supabase
+      setError('E-mail ou senha incorretos.')
+      setShake(true)
+      setTimeout(() => setShake(false), 600)
+    }
+    setLoading(false)
   }
 
   return (
@@ -69,18 +68,18 @@ export default function LoginPage() {
           <h2 className="text-base font-semibold text-gray-200 mb-6">Acesso ao sistema</h2>
 
           <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
-            {/* Usuário */}
+            {/* E-mail */}
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                Usuário
+                E-mail
               </label>
               <input
-                type="text"
-                value={username}
-                onChange={(e) => { setUsername(e.target.value); setError('') }}
-                placeholder="Digite seu usuário"
+                type="email"
+                value={email}
+                onChange={(e) => { setEmail(e.target.value); setError('') }}
+                placeholder="seu@email.com"
                 autoFocus
-                autoComplete="username"
+                autoComplete="email"
                 className="
                   w-full h-10 px-3 rounded-lg border text-sm text-gray-200 bg-[#0d1117]
                   placeholder-gray-600 outline-none transition-colors
@@ -99,7 +98,7 @@ export default function LoginPage() {
                   type={showPass ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => { setPassword(e.target.value); setError('') }}
-                  placeholder="Digite sua senha"
+                  placeholder="••••••••"
                   autoComplete="current-password"
                   className="
                     w-full h-10 px-3 pr-10 rounded-lg border text-sm text-gray-200 bg-[#0d1117]
@@ -150,7 +149,7 @@ export default function LoginPage() {
         </p>
       </div>
 
-      {/* CSS para shake animation via style tag inline */}
+      {/* CSS para shake animation */}
       <style>{`
         @keyframes shake {
           0%,100% { transform: translateX(0); }
