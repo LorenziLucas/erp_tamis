@@ -51,7 +51,7 @@ create table if not exists public.lotes (
   -- Métricas adicionais
   qtd_total       integer     not null default 0,
   qtd_p           integer     not null default 0,
-  total_sentencas integer     not null default 0,
+  total_sentencas numeric(12,2) not null default 0,
 
   -- Auditoria
   created_at      timestamptz not null default now(),
