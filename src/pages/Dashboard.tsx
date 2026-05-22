@@ -444,18 +444,33 @@ export default function Dashboard() {
   const recent   = selectRecentLotes(filteredLotes)
   const insights = computeInsights(lotes) // insights sempre sobre o total
 
-  // Janela fixa: últimos 13 meses a partir do mês atual (calculado uma vez)
+  // Janela dinâmica: últimos 13 meses a partir do mesRef mais recente nos dados
   const last12Months = useMemo(() => {
-    const now = new Date()
+    // Encontra o mês mais recente presente nos lotes; fallback para hoje se vazio
+    let refDate = new Date()
+    if (lotes.length > 0) {
+      const maxMesRef = lotes
+        .map((l) => l.mesRef)
+        .filter(Boolean)
+        .sort()
+        .at(-1)
+      if (maxMesRef) {
+        const parts = maxMesRef.split('-')
+        if (parts.length >= 2) {
+          // Usa horário local para evitar deslocamento de fuso
+          refDate = new Date(Number(parts[0]), Number(parts[1]) - 1, 1)
+        }
+      }
+    }
     return Array.from({ length: 13 }, (_, i) => {
-      const d = new Date(now.getFullYear(), now.getMonth() - (12 - i), 1)
+      const d = new Date(refDate.getFullYear(), refDate.getMonth() - (12 - i), 1)
       const year = d.getFullYear()
       const month = d.getMonth() + 1
       const key = `${year}-${String(month).padStart(2, '0')}`
       const label = `${MONTHS_SHORT_PT[month - 1]}-${String(year).slice(-2)}`
       return { key, label }
     })
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [lotes])
 
   // ── Returns condicionais — SEMPRE após todos os hooks ───────────────────────
   if (loading && lotes.length === 0) {
