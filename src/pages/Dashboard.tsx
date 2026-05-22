@@ -427,13 +427,19 @@ export default function Dashboard() {
 
   const hasFilter = filterAno.length > 0 || filterMes.length > 0 || filterRegiao.length > 0
 
-  const kpis     = selectKpis(filteredLotes)
-  const byTipo   = selectByTipo(filteredLotes)
-  const byMes    = selectByMes(filteredLotes)
-  const topP     = selectTopPeritos(filteredLotes, 10)
-  const byRegiao = selectByRegiao(filteredLotes)
-  const byFormato= selectByFormato(filteredLotes)
-  const recent   = selectRecentLotes(filteredLotes)
+  // Métricas e a maioria dos gráficos consideram somente 1ª análise
+  const primeirasAnalises = useMemo(
+    () => filteredLotes.filter((l) => l.analise === '1ª'),
+    [filteredLotes],
+  )
+
+  const kpis     = selectKpis(primeirasAnalises)
+  const byTipo   = selectByTipo(primeirasAnalises)
+  const byMes    = selectByMes(primeirasAnalises)
+  const topP     = selectTopPeritos(primeirasAnalises, 10)
+  const byRegiao = selectByRegiao(primeirasAnalises)
+  const byFormato= selectByFormato(primeirasAnalises)
+  const recent   = selectRecentLotes(primeirasAnalises)
   const insights = computeInsights(lotes)
 
   const last12Months = useMemo(() => {
@@ -692,7 +698,7 @@ export default function Dashboard() {
     datasets: [{ data: Object.values(byFormato), backgroundColor: [`${C.teal}cc`, `${C.red}cc`], borderColor: [C.teal, C.red], borderWidth: 1.5, hoverOffset: 6 }],
   }
 
-  const histBins = buildHistData(filteredLotes)
+  const histBins = buildHistData(primeirasAnalises)
   const histData = {
     labels: histBins.map((b) => b.label),
     datasets: [{
@@ -717,7 +723,7 @@ export default function Dashboard() {
     },
   }
 
-  const analistas1 = buildAnalistaArr(filteredLotes.filter((l) => l.analise === '1ª'))
+  const analistas1 = buildAnalistaArr(primeirasAnalises)
   const analistas2 = buildAnalistaArr(filteredLotes.filter((l) => l.analise === '2ª'))
   const { data: analistaData1, options: analistaOpts1 } = makeAnalistaChart(analistas1, C.blue)
   const { data: analistaData2, options: analistaOpts2 } = makeAnalistaChart(analistas2, C.orange)
