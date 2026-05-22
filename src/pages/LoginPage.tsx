@@ -59,7 +59,8 @@ export default function LoginPage() {
             <img
               src="/logo-tamis.jpg"
               alt="ERP Tamis"
-              className="h-16 w-auto"
+              className="w-[180px] h-auto"
+              style={{ mixBlendMode: 'multiply' }}
               onError={(e) => {
                 const target = e.currentTarget
                 target.style.display = 'none'
