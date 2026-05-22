@@ -6,7 +6,7 @@ export function Layout() {
   const [collapsed, setCollapsed] = useState(false)
 
   return (
-    <div className="min-h-screen bg-[#0d1117]">
+    <div className="min-h-screen bg-[#F4F6F4]">
       <Sidebar collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} />
       <main
         className="min-h-screen transition-all duration-200"

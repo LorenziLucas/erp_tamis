@@ -2,7 +2,7 @@ import { cn } from '../../lib/utils'
 import type { InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react'
 import { forwardRef } from 'react'
 
-const fieldBase = 'bg-[#0d1117] border border-[#30363d] rounded-md text-gray-200 text-sm placeholder-gray-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors w-full disabled:opacity-50'
+const fieldBase = 'bg-white border border-[#D4DAD6] rounded-md text-[#1A1A1A] text-sm placeholder-[#9AA4A0] focus:outline-none focus:border-[#1B4D2E] focus:ring-1 focus:ring-[#1B4D2E]/30 transition-colors w-full disabled:opacity-50'
 
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement> & { error?: string }>(
   ({ className, error, ...props }, ref) => (
@@ -10,9 +10,9 @@ export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputE
       <input
         ref={ref}
         {...props}
-        className={cn(fieldBase, 'h-8 px-3', error && 'border-red-500 focus:border-red-500 focus:ring-red-500', className)}
+        className={cn(fieldBase, 'h-8 px-3', error && 'border-red-400 focus:border-red-500 focus:ring-red-500/30', className)}
       />
-      {error && <p className="mt-1 text-xs text-red-400">{error}</p>}
+      {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
     </div>
   )
 )
@@ -24,11 +24,11 @@ export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSel
       <select
         ref={ref}
         {...props}
-        className={cn(fieldBase, 'h-8 px-3 cursor-pointer', error && 'border-red-500', className)}
+        className={cn(fieldBase, 'h-8 px-3 cursor-pointer', error && 'border-red-400', className)}
       >
         {children}
       </select>
-      {error && <p className="mt-1 text-xs text-red-400">{error}</p>}
+      {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
     </div>
   )
 )
@@ -40,9 +40,9 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<H
       <textarea
         ref={ref}
         {...props}
-        className={cn(fieldBase, 'px-3 py-2 resize-none', error && 'border-red-500', className)}
+        className={cn(fieldBase, 'px-3 py-2 resize-none', error && 'border-red-400', className)}
       />
-      {error && <p className="mt-1 text-xs text-red-400">{error}</p>}
+      {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
     </div>
   )
 )
@@ -56,11 +56,11 @@ export function FormField({ label, error, required, children }: {
 }) {
   return (
     <div className="space-y-1">
-      <label className="block text-xs font-medium text-gray-400 uppercase tracking-wide">
-        {label}{required && <span className="text-red-400 ml-1">*</span>}
+      <label className="block text-xs font-medium text-[#5A6A5E] uppercase tracking-wide">
+        {label}{required && <span className="text-red-500 ml-1">*</span>}
       </label>
       {children}
-      {error && <p className="text-xs text-red-400">{error}</p>}
+      {error && <p className="text-xs text-red-500">{error}</p>}
     </div>
   )
 }

@@ -26,13 +26,12 @@ import type { Lote } from '../types'
 ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Tooltip, Legend, Filler)
 
 // ── Paleta ──────────────────────────────────────────────────────────────────
-const DARK = { grid: '#21262d', text: '#8b949e', font: "'Segoe UI', Arial, sans-serif" }
+const DARK = { grid: '#D4DAD6', text: '#5A6A5E', font: "'Segoe UI', Arial, sans-serif" }
 const C = {
-  blue: '#388bfd', purple: '#bc8cff', green: '#3fb950',
+  blue: '#2D7A47', purple: '#9B5CF6', green: '#3fb950',
   orange: '#d29922', teal: '#39d0d8', red: '#f85149',
 }
 
-/** Formata valores monetários nos ticks do eixo Y como R$ #,#k */
 const fmtTickK = (v: number | string) => {
   const k = Number(v) / 1000
   return k.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + 'k'
@@ -86,7 +85,6 @@ function computeInsights(lotes: Lote[]): Insight[] {
     }
   }
 
-  // Eficiência = menor custo por processo "P" encontrado (valorDevido / qtdP)
   const peritoMap: Record<string, { valor: number; qtdP: number; lotes: number }> = {}
   for (const l of lotes) {
     if (!peritoMap[l.perito]) peritoMap[l.perito] = { valor: 0, qtdP: 0, lotes: 0 }
@@ -94,7 +92,6 @@ function computeInsights(lotes: Lote[]): Insight[] {
     peritoMap[l.perito].qtdP  += l.qtdP ?? 0
     peritoMap[l.perito].lotes++
   }
-  // Considera apenas peritos que têm P's registrados e custo > 0
   const comP = Object.entries(peritoMap).filter(([, v]) => v.qtdP > 0 && v.valor > 0)
   if (comP.length > 0) {
     const custoPorP = ([, v]: typeof comP[0]) => v.valor / v.qtdP
@@ -168,14 +165,14 @@ function InsightsTicker({ insights }: { insights: Insight[] }) {
   if (insights.length === 0) return null
   const ins = insights[current]
   const colors = {
-    warning: 'border-amber-500/40 bg-amber-500/8 text-amber-300',
-    info:    'border-blue-500/40 bg-blue-500/8 text-blue-300',
-    success: 'border-emerald-500/40 bg-emerald-500/8 text-emerald-300',
+    warning: 'border-amber-400/50 bg-amber-50 text-amber-700',
+    info:    'border-[#1B4D2E]/30 bg-[#1B4D2E]/5 text-[#1B4D2E]',
+    success: 'border-emerald-400/50 bg-emerald-50 text-emerald-700',
   }
   const icons = {
-    warning: <AlertTriangle size={13} className="shrink-0 text-amber-400 mt-0.5" />,
-    info:    <Info size={13} className="shrink-0 text-blue-400 mt-0.5" />,
-    success: <TrendingUp size={13} className="shrink-0 text-emerald-400 mt-0.5" />,
+    warning: <AlertTriangle size={13} className="shrink-0 text-amber-500 mt-0.5" />,
+    info:    <Info size={13} className="shrink-0 text-[#1B4D2E] mt-0.5" />,
+    success: <TrendingUp size={13} className="shrink-0 text-emerald-600 mt-0.5" />,
   }
 
   return (
@@ -183,14 +180,14 @@ function InsightsTicker({ insights }: { insights: Insight[] }) {
       {icons[ins.level]}
       <div className="flex-1 min-w-0">
         <span className="text-xs font-semibold">{ins.title}</span>
-        <span className="text-xs text-gray-400 ml-2">{ins.body}</span>
+        <span className="text-xs text-[#5A6A5E] ml-2">{ins.body}</span>
       </div>
       <div className="flex items-center gap-1 shrink-0 mt-1">
         {insights.map((_, i) => (
           <button
             key={i}
             onClick={() => { setCurrent(i); setVisible(true) }}
-            className={`w-1.5 h-1.5 rounded-full transition-colors ${i === current ? 'bg-gray-300' : 'bg-gray-600 hover:bg-gray-500'}`}
+            className={`w-1.5 h-1.5 rounded-full transition-colors ${i === current ? 'bg-[#1B4D2E]' : 'bg-[#D4DAD6] hover:bg-[#B0C4B8]'}`}
           />
         ))}
       </div>
@@ -225,7 +222,6 @@ function buildHistData(lotes: Lote[]) {
   }))
 }
 
-// ── Helpers dos gráficos de analista ─────────────────────────────────────────
 type AnalistaEntry = { name: string; lotes: number; valor: number; qtd: number }
 
 function buildAnalistaArr(lotes: Lote[]): AnalistaEntry[] {
@@ -268,7 +264,6 @@ function makeAnalistaChart(arr: AnalistaEntry[], barColor: string) {
         yAxisID: 'y2',
         order: 1,
       },
-      // Invisível: só aparece no tooltip
       {
         type: 'line' as const,
         label: 'Processos Analisados',
@@ -358,29 +353,29 @@ function MultiSelect({
         type="button"
         onClick={() => setOpen((o) => !o)}
         className={cn(
-          'h-8 pl-3 pr-8 bg-[#161b22] border rounded-lg text-sm focus:outline-none transition-colors cursor-pointer flex items-center min-w-[150px] text-left',
-          open ? 'border-blue-500' : 'border-[#30363d]',
-          selected.length > 0 ? 'text-gray-200' : 'text-gray-500',
+          'h-8 pl-3 pr-8 bg-white border rounded-lg text-sm focus:outline-none transition-colors cursor-pointer flex items-center min-w-[150px] text-left',
+          open ? 'border-[#1B4D2E]' : 'border-[#D4DAD6]',
+          selected.length > 0 ? 'text-[#1A1A1A]' : 'text-[#9AA4A0]',
         )}
       >
         <span className="truncate flex-1">{display}</span>
         <ChevronDown
           size={12}
-          className={cn('absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 transition-transform duration-150', open && 'rotate-180')}
+          className={cn('absolute right-2.5 top-1/2 -translate-y-1/2 text-[#9AA4A0] transition-transform duration-150', open && 'rotate-180')}
         />
       </button>
       {open && (
-        <div className="absolute top-full left-0 mt-1 z-50 bg-[#1c2333] border border-[#30363d] rounded-lg shadow-xl py-1 min-w-[160px] max-h-52 overflow-y-auto">
+        <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-[#D4DAD6] rounded-lg shadow-lg py-1 min-w-[160px] max-h-52 overflow-y-auto">
           {options.length === 0 && (
-            <div className="px-3 py-2 text-xs text-gray-600">Sem opções</div>
+            <div className="px-3 py-2 text-xs text-[#9AA4A0]">Sem opções</div>
           )}
           {options.map((opt) => (
-            <label key={opt} className="flex items-center gap-2.5 px-3 py-1.5 cursor-pointer hover:bg-[#21262d] text-sm text-gray-300 select-none">
+            <label key={opt} className="flex items-center gap-2.5 px-3 py-1.5 cursor-pointer hover:bg-[#F4F6F4] text-sm text-[#1A1A1A] select-none">
               <input
                 type="checkbox"
                 checked={selected.includes(opt)}
                 onChange={() => toggle(opt)}
-                className="accent-blue-500 w-3.5 h-3.5 shrink-0"
+                className="accent-[#1B4D2E] w-3.5 h-3.5 shrink-0"
               />
               {renderLabel ? renderLabel(opt) : opt}
             </label>
@@ -399,11 +394,9 @@ export default function Dashboard() {
   const loading    = useLotesStore((s) => s.loading)
   const storeError = useLotesStore((s) => s.error)
 
-  // Carrega lotes do Supabase ao montar
   const fetchOnce = useCallback(() => { fetchLotes() }, [fetchLotes])
   useEffect(() => { fetchOnce() }, [fetchOnce])
 
-  // ── Filtros (hooks sempre antes de qualquer return condicional) ───────────────
   const [filterAno,    setFilterAno]    = useState<string[]>([])
   const [filterMes,    setFilterMes]    = useState<string[]>([])
   const [filterRegiao, setFilterRegiao] = useState<string[]>([])
@@ -434,7 +427,6 @@ export default function Dashboard() {
 
   const hasFilter = filterAno.length > 0 || filterMes.length > 0 || filterRegiao.length > 0
 
-  // ── Selectors (sobre os dados filtrados) ─────────────────────────────────────
   const kpis     = selectKpis(filteredLotes)
   const byTipo   = selectByTipo(filteredLotes)
   const byMes    = selectByMes(filteredLotes)
@@ -442,11 +434,9 @@ export default function Dashboard() {
   const byRegiao = selectByRegiao(filteredLotes)
   const byFormato= selectByFormato(filteredLotes)
   const recent   = selectRecentLotes(filteredLotes)
-  const insights = computeInsights(lotes) // insights sempre sobre o total
+  const insights = computeInsights(lotes)
 
-  // Janela dinâmica: últimos 13 meses a partir do mesRef mais recente nos dados
   const last12Months = useMemo(() => {
-    // Encontra o mês mais recente presente nos lotes; fallback para hoje se vazio
     let refDate = new Date()
     if (lotes.length > 0) {
       const maxMesRef = lotes
@@ -457,7 +447,6 @@ export default function Dashboard() {
       if (maxMesRef) {
         const parts = maxMesRef.split('-')
         if (parts.length >= 2) {
-          // Usa horário local para evitar deslocamento de fuso
           refDate = new Date(Number(parts[0]), Number(parts[1]) - 1, 1)
         }
       }
@@ -472,13 +461,12 @@ export default function Dashboard() {
     })
   }, [lotes])
 
-  // ── Returns condicionais — SEMPRE após todos os hooks ───────────────────────
   if (loading && lotes.length === 0) {
     return (
       <div className="p-8 flex items-center justify-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-3">
-          <span className="w-8 h-8 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
-          <span className="text-sm text-gray-500">Carregando lotes…</span>
+          <span className="w-8 h-8 border-2 border-[#1B4D2E]/30 border-t-[#1B4D2E] rounded-full animate-spin" />
+          <span className="text-sm text-[#5A6A5E]">Carregando lotes…</span>
         </div>
       </div>
     )
@@ -487,7 +475,7 @@ export default function Dashboard() {
   if (storeError) {
     return (
       <div className="p-8">
-        <div className="bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3 text-sm text-red-400">
+        <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-600">
           Erro ao carregar dados: {storeError}
         </div>
       </div>
@@ -498,8 +486,8 @@ export default function Dashboard() {
     return (
       <div className="p-8">
         <div className="mb-8">
-          <h1 className="text-xl font-bold text-gray-100">Dashboard</h1>
-          <p className="text-sm text-gray-500 mt-1">Visão geral da gestão de lotes</p>
+          <h1 className="text-xl font-bold text-[#1A1A1A]">Dashboard</h1>
+          <p className="text-sm text-[#5A6A5E] mt-1">Visão geral da gestão de lotes</p>
         </div>
         <EmptyState
           title="Nenhum lote cadastrado"
@@ -515,7 +503,6 @@ export default function Dashboard() {
     )
   }
 
-  // ── Alinha byMes à janela de 12 meses (0 para meses sem dados) ──────────────
   const byMesMap = new Map(byMes.map((m) => [m.key, m]))
   const trendMonths = last12Months.map(({ key, label }) => ({
     key,
@@ -523,11 +510,9 @@ export default function Dashboard() {
     ...(byMesMap.get(key) ?? { lotes: 0, valor: 0, qtd: 0 }),
   }))
 
-  // ── Trend: 4 datasets — 2 visíveis no gráfico, 2 invisíveis só para tooltip ──
   const trendData = {
     labels: trendMonths.map((m) => m.label),
     datasets: [
-      // 0 — Barra visível (lotes) — aparece na legenda e no gráfico
       {
         type: 'bar' as const,
         label: 'Nº de Lotes',
@@ -539,7 +524,6 @@ export default function Dashboard() {
         yAxisID: 'y',
         order: 2,
       },
-      // 1 — Linha invisível (processos) — só tooltip, quadradinho teal
       {
         type: 'line' as const,
         label: 'Processos Analisados',
@@ -554,7 +538,6 @@ export default function Dashboard() {
         yAxisID: 'y3',
         order: 99,
       },
-      // 2 — Linha visível (valor) — aparece na legenda e no gráfico
       {
         type: 'line' as const,
         label: 'Valor Investido (R$)',
@@ -568,7 +551,6 @@ export default function Dashboard() {
         yAxisID: 'y2',
         order: 1,
       },
-      // 3 — Linha invisível (valor médio/lote) — só tooltip, quadradinho laranja
       {
         type: 'line' as const,
         label: 'Valor Médio/Lote',
@@ -590,7 +572,6 @@ export default function Dashboard() {
     ...CHART_BASE,
     interaction: { mode: 'index' as const, intersect: false },
     plugins: {
-      // Legenda: exibe apenas os 2 datasets visíveis (índices 0 e 2)
       legend: {
         labels: {
           color: DARK.text,
@@ -601,7 +582,6 @@ export default function Dashboard() {
       },
       tooltip: {
         callbacks: {
-          // Remove o título (mês/ano) — já aparece no eixo X
           title: () => [] as string[],
           label: (ctx: { datasetIndex: number; dataIndex: number }) => {
             const m = trendMonths[ctx.dataIndex]
@@ -621,18 +601,15 @@ export default function Dashboard() {
       x:  { grid: { color: DARK.grid }, ticks: { color: DARK.text } },
       y:  { grid: { color: DARK.grid }, ticks: { color: C.blue, stepSize: 1 }, title: { display: true, text: 'Lotes', color: C.blue, font: { size: 10 } } },
       y2: { position: 'right' as const, grid: { display: false }, ticks: { callback: fmtTickK, color: C.purple }, title: { display: true, text: 'Valor (R$)', color: C.purple, font: { size: 10 } } },
-      y3: { display: false }, // eixo oculto para os datasets invisíveis
+      y3: { display: false },
     },
   }
-
-  // ── Top Peritos (bar valor + line qtd) ─────────────────────────────────────
 
   const peritoLabels = topP.map((p) => {
     const parts = p.name.split(' ')
     return parts.length >= 2 ? `${parts[0]} ${parts.at(-1)}` : p.name
   })
 
-  // Dataset 0 → barra (qtd processos) | Dataset 1 → linha (valor)
   const peritoData = {
     labels: peritoLabels,
     datasets: [
@@ -687,7 +664,6 @@ export default function Dashboard() {
     },
   }
 
-  // ── Donuts (processos analisados com percentual) ─────────────────────────────
   const donutTooltip = {
     callbacks: {
       label: (ctx: { label: string; parsed: number; dataset: { data: number[] } }) => {
@@ -716,7 +692,6 @@ export default function Dashboard() {
     datasets: [{ data: Object.values(byFormato), backgroundColor: [`${C.teal}cc`, `${C.red}cc`], borderColor: [C.teal, C.red], borderWidth: 1.5, hoverOffset: 6 }],
   }
 
-  // ── Histograma de Prazo ──────────────────────────────────────────────────────
   const histBins = buildHistData(filteredLotes)
   const histData = {
     labels: histBins.map((b) => b.label),
@@ -742,7 +717,6 @@ export default function Dashboard() {
     },
   }
 
-  // ── Distribuição por Analista — dois gráficos separados (1ª e 2ª análise) ───
   const analistas1 = buildAnalistaArr(filteredLotes.filter((l) => l.analise === '1ª'))
   const analistas2 = buildAnalistaArr(filteredLotes.filter((l) => l.analise === '2ª'))
   const { data: analistaData1, options: analistaOpts1 } = makeAnalistaChart(analistas1, C.blue)
@@ -753,8 +727,8 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-100">Dashboard</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Visão geral — {lotes.length} lotes cadastrados</p>
+          <h1 className="text-xl font-bold text-[#1A1A1A]">Dashboard</h1>
+          <p className="text-sm text-[#5A6A5E] mt-0.5">Visão geral — {lotes.length} lotes cadastrados</p>
         </div>
         <div className="flex gap-2">
           <Link to="/lotes/importar"><Button variant="secondary" size="md"><Upload size={13} /> Importar XLS</Button></Link>
@@ -766,9 +740,9 @@ export default function Dashboard() {
       <InsightsTicker insights={insights} />
 
       {/* Filtros */}
-      <div className="flex items-center gap-3 flex-wrap bg-[#161b22] border border-[#30363d] rounded-lg px-4 py-2.5">
-        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider shrink-0">Filtrar por</span>
-        <div className="w-px h-4 bg-[#30363d] shrink-0" />
+      <div className="flex items-center gap-3 flex-wrap bg-white border border-[#D4DAD6] rounded-lg px-4 py-2.5">
+        <span className="text-xs font-semibold text-[#5A6A5E] uppercase tracking-wider shrink-0">Filtrar por</span>
+        <div className="w-px h-4 bg-[#D4DAD6] shrink-0" />
         <MultiSelect
           options={anosOptions}
           selected={filterAno}
@@ -792,11 +766,11 @@ export default function Dashboard() {
           <>
             <button
               onClick={() => { setFilterAno([]); setFilterMes([]); setFilterRegiao([]) }}
-              className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-200 transition-colors ml-1"
+              className="flex items-center gap-1 text-xs text-[#5A6A5E] hover:text-[#1A1A1A] transition-colors ml-1"
             >
               <X size={12} /> Limpar
             </button>
-            <span className="ml-auto text-xs text-blue-400 shrink-0">
+            <span className="ml-auto text-xs text-[#2D7A47] shrink-0">
               {filteredLotes.length} de {lotes.length} lote{lotes.length !== 1 ? 's' : ''}
             </span>
           </>
@@ -805,7 +779,7 @@ export default function Dashboard() {
 
       {/* Aviso de filtro sem resultado */}
       {hasFilter && filteredLotes.length === 0 && (
-        <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 rounded-lg px-4 py-3 text-sm text-amber-300">
+        <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-700">
           <AlertTriangle size={14} className="shrink-0" />
           Nenhum lote encontrado para os filtros selecionados.
         </div>
@@ -862,7 +836,7 @@ export default function Dashboard() {
         <Line data={trendData as Parameters<typeof Line>[0]['data']} options={trendOptions as Parameters<typeof Line>[0]['options']} />
       </ChartCard>
 
-      {/* Row 2 — 3 Donuts em linha (processos analisados) */}
+      {/* Row 2 — 3 Donuts em linha */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
         <ChartCard title="Distribuição por Tipo" className="min-h-[220px]">
           <Doughnut data={tipoData} options={donutOpts} />
@@ -875,7 +849,7 @@ export default function Dashboard() {
         </ChartCard>
       </div>
 
-      {/* Row 3 — Top Peritos (largura total) */}
+      {/* Row 3 — Top Peritos */}
       <ChartCard
         title="Top 10 Peritos — Valor Investido × Processos Analisados"
         subtitle="Barras = qtd de processos · Linha = valor (R$)"
@@ -889,7 +863,7 @@ export default function Dashboard() {
         <Bar data={histData} options={histOptions as Parameters<typeof Bar>[0]['options']} />
       </ChartCard>
 
-      {/* Row 4 — Distribuição por Analista: 1ª e 2ª análise lado a lado */}
+      {/* Row 4 — Distribuição por Analista */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-stretch">
         <ChartCard
           title="Analistas — 1ª Análise"
@@ -898,7 +872,7 @@ export default function Dashboard() {
         >
           {analistas1.length > 0
             ? <Chart type='bar' data={analistaData1} options={analistaOpts1 as Parameters<typeof Chart>[0]['options']} />
-            : <div className="flex items-center justify-center h-full text-sm text-gray-600">Nenhum dado para 1ª análise</div>
+            : <div className="flex items-center justify-center h-full text-sm text-[#5A6A5E]">Nenhum dado para 1ª análise</div>
           }
         </ChartCard>
         <ChartCard
@@ -908,7 +882,7 @@ export default function Dashboard() {
         >
           {analistas2.length > 0
             ? <Chart type='bar' data={analistaData2} options={analistaOpts2 as Parameters<typeof Chart>[0]['options']} />
-            : <div className="flex items-center justify-center h-full text-sm text-gray-600">Nenhum dado para 2ª análise</div>
+            : <div className="flex items-center justify-center h-full text-sm text-[#5A6A5E]">Nenhum dado para 2ª análise</div>
           }
         </ChartCard>
       </div>
@@ -916,34 +890,34 @@ export default function Dashboard() {
       {/* Lotes Recentes */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-gray-300">Lotes Recentes</h2>
-          <Link to="/lotes" className="text-xs text-blue-400 hover:text-blue-300">Ver todos →</Link>
+          <h2 className="text-sm font-semibold text-[#1A1A1A]">Lotes Recentes</h2>
+          <Link to="/lotes" className="text-xs text-[#2D7A47] hover:text-[#1B4D2E]">Ver todos →</Link>
         </div>
-        <div className="bg-[#161b22] border border-[#30363d] rounded-lg overflow-hidden">
+        <div className="bg-white border border-[#D4DAD6] rounded-lg overflow-hidden">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-[#30363d]">
+              <tr className="border-b border-[#D4DAD6]">
                 {['Mês Ref.', 'Região', 'Perito', 'Tipo', 'Qtd Anal.', 'Valor Investido', 'Status'].map((h) => (
-                  <th key={h} className="px-4 py-2.5 text-left text-[10px] uppercase tracking-wide text-gray-600 font-semibold bg-[#1c2333]">{h}</th>
+                  <th key={h} className="px-4 py-2.5 text-left text-[10px] uppercase tracking-wide text-[#5A6A5E] font-semibold bg-[#F0F2F0]">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {recent.map((l) => (
-                <tr key={l.id} className="border-b border-[#30363d] last:border-0 hover:bg-[#1c2333] transition-colors">
-                  <td className="px-4 py-2.5 text-gray-400">{formatMonthYear(l.mesRef)}</td>
-                  <td className="px-4 py-2.5 text-gray-400">{l.regiao}</td>
-                  <td className="px-4 py-2.5 text-gray-200 font-medium truncate max-w-[180px]">{l.perito}</td>
+                <tr key={l.id} className="border-b border-[#D4DAD6] last:border-0 hover:bg-[#F4F6F4] transition-colors">
+                  <td className="px-4 py-2.5 text-[#5A6A5E]">{formatMonthYear(l.mesRef)}</td>
+                  <td className="px-4 py-2.5 text-[#5A6A5E]">{l.regiao}</td>
+                  <td className="px-4 py-2.5 text-[#1A1A1A] font-medium truncate max-w-[180px]">{l.perito}</td>
                   <td className="px-4 py-2.5"><TipoBadge tipo={l.tipo} /></td>
-                  <td className="px-4 py-2.5 text-right text-gray-400">{l.qtdAnalisada.toLocaleString('pt-BR')}</td>
-                  <td className="px-4 py-2.5 text-right text-gray-200">{formatCurrency(l.valorDevido)}</td>
+                  <td className="px-4 py-2.5 text-right text-[#5A6A5E]">{l.qtdAnalisada.toLocaleString('pt-BR')}</td>
+                  <td className="px-4 py-2.5 text-right text-[#1A1A1A]">{formatCurrency(l.valorDevido)}</td>
                   <td className="px-4 py-2.5"><PagoBadge pago={l.pago} /></td>
                 </tr>
               ))}
             </tbody>
           </table>
           {recent.length === 0 && (
-            <div className="py-8 text-center text-sm text-gray-600">Nenhum lote recente</div>
+            <div className="py-8 text-center text-sm text-[#5A6A5E]">Nenhum lote recente</div>
           )}
         </div>
       </div>

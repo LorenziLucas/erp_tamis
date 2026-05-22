@@ -24,12 +24,12 @@ export default function NovoLotePage() {
           <ArrowLeft size={14} />
         </Button>
         <div>
-          <h1 className="text-xl font-bold text-gray-100">Novo Lote</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Cadastre um novo lote de análise pericial</p>
+          <h1 className="text-xl font-bold text-[#1A1A1A]">Novo Lote</h1>
+          <p className="text-sm text-[#5A6A5E] mt-0.5">Cadastre um novo lote de análise pericial</p>
         </div>
       </div>
 
-      <div className="bg-[#161b22] border border-[#30363d] rounded-xl p-6">
+      <div className="bg-white border border-[#D4DAD6] rounded-xl p-6">
         <LoteForm
           onSubmit={handleSubmit}
           onCancel={() => navigate('/lotes')}

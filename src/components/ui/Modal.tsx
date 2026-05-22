@@ -28,10 +28,10 @@ export function Modal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 px-4">
-      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className={cn('relative bg-[#161b22] border border-[#30363d] rounded-xl shadow-2xl w-full', widths[size])}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#30363d]">
-          <h2 className="text-base font-semibold text-gray-100">{title}</h2>
+      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className={cn('relative bg-white border border-[#D4DAD6] rounded-xl shadow-xl w-full', widths[size])}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#D4DAD6]">
+          <h2 className="text-base font-semibold text-[#1A1A1A]">{title}</h2>
           <Button variant="ghost" size="sm" onClick={onClose}><X size={14} /></Button>
         </div>
         <div className="px-6 py-5 max-h-[80vh] overflow-y-auto">{children}</div>
@@ -55,7 +55,7 @@ export function ConfirmDialog({
 }) {
   return (
     <Modal open={open} onClose={onClose} title={title} size="sm">
-      <p className="text-sm text-gray-400 mb-6">{message}</p>
+      <p className="text-sm text-[#5A6A5E] mb-6">{message}</p>
       <div className="flex justify-end gap-2">
         <Button variant="secondary" onClick={onClose}>Cancelar</Button>
         <Button variant="danger" onClick={() => { onConfirm(); onClose() }}>Confirmar exclusão</Button>

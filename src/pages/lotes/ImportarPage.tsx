@@ -49,7 +49,7 @@ export default function ImportarPage() {
   const handleImport = async () => {
     if (!file) return
     setStage('importing')
-    const result = await importXlsx(file, lotes)   // passa base existente para deduplicação
+    const result = await importXlsx(file, lotes)
     const { imported: importedCount, errors: saveErrors } = await addLotes(result.lotes)
     const allErrors = [...result.errors, ...saveErrors]
     setImported(importedCount)
@@ -81,8 +81,8 @@ export default function ImportarPage() {
       <div className="flex items-center gap-3 mb-6">
         <Button variant="ghost" size="sm" onClick={() => navigate(-1)}><ArrowLeft size={14} /></Button>
         <div>
-          <h1 className="text-xl font-bold text-gray-100">Importar Planilha XLS</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Importe lotes em massa a partir do arquivo Excel de gestão</p>
+          <h1 className="text-xl font-bold text-[#1A1A1A]">Importar Planilha XLS</h1>
+          <p className="text-sm text-[#5A6A5E] mt-0.5">Importe lotes em massa a partir do arquivo Excel de gestão</p>
         </div>
         <div className="ml-auto">
           <Button variant="secondary" size="md" onClick={downloadTemplate}>
@@ -101,8 +101,8 @@ export default function ImportarPage() {
           className={cn(
             'border-2 border-dashed rounded-xl p-16 flex flex-col items-center justify-center text-center cursor-pointer transition-all',
             dragging
-              ? 'border-blue-500 bg-blue-500/10'
-              : 'border-[#30363d] hover:border-blue-500/50 hover:bg-[#161b22]'
+              ? 'border-[#1B4D2E] bg-[#1B4D2E]/5'
+              : 'border-[#D4DAD6] hover:border-[#1B4D2E]/50 hover:bg-[#F0F4F0]'
           )}
         >
           <input
@@ -114,15 +114,15 @@ export default function ImportarPage() {
           />
           <div className={cn(
             'w-16 h-16 rounded-full flex items-center justify-center mb-4 transition-colors',
-            dragging ? 'bg-blue-500/20' : 'bg-[#1c2333]'
+            dragging ? 'bg-[#1B4D2E]/15' : 'bg-[#EEF1EE]'
           )}>
-            <Upload size={28} className={dragging ? 'text-blue-400' : 'text-gray-600'} />
+            <Upload size={28} className={dragging ? 'text-[#1B4D2E]' : 'text-[#5A6A5E]'} />
           </div>
-          <h3 className="text-base font-semibold text-gray-200 mb-1">
+          <h3 className="text-base font-semibold text-[#1A1A1A] mb-1">
             {dragging ? 'Solte o arquivo aqui' : 'Arraste o arquivo Excel'}
           </h3>
-          <p className="text-sm text-gray-600 mb-4">ou clique para selecionar — .xlsx, .xls</p>
-          <div className="text-xs text-gray-700 bg-[#1c2333] rounded-lg px-4 py-2 max-w-sm">
+          <p className="text-sm text-[#5A6A5E] mb-4">ou clique para selecionar — .xlsx, .xls</p>
+          <div className="text-xs text-[#7A8A7E] bg-[#EEF1EE] rounded-lg px-4 py-2 max-w-sm">
             Colunas esperadas: REGIÃO, PERITO, LOTE, ANALISTA, QTD ANALISADA, ANÁLISE, TIPO, FORMATO, ENVIO, ENTREGA, MÊS REF., VALOR DEVIDO, PAGO…
           </div>
         </div>
@@ -132,11 +132,11 @@ export default function ImportarPage() {
       {(stage === 'preview' || stage === 'importing') && preview && (
         <div className="space-y-4">
           {/* File info */}
-          <div className="flex items-center gap-3 bg-[#161b22] border border-[#30363d] rounded-lg px-4 py-3">
-            <FileSpreadsheet size={20} className="text-green-400 shrink-0" />
+          <div className="flex items-center gap-3 bg-white border border-[#D4DAD6] rounded-lg px-4 py-3">
+            <FileSpreadsheet size={20} className="text-emerald-600 shrink-0" />
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium text-gray-200 truncate">{file?.name}</div>
-              <div className="text-xs text-gray-600">{(file?.size ?? 0 / 1024).toFixed(0)} KB</div>
+              <div className="text-sm font-medium text-[#1A1A1A] truncate">{file?.name}</div>
+              <div className="text-xs text-[#5A6A5E]">{(file?.size ?? 0 / 1024).toFixed(0)} KB</div>
             </div>
             <Button variant="ghost" size="sm" onClick={reset}><X size={13} /></Button>
           </div>
@@ -145,32 +145,32 @@ export default function ImportarPage() {
           <div className="flex gap-3 flex-wrap">
             <div className={`flex items-center gap-2 rounded-lg px-3 py-2 border ${
               preview.total === 0
-                ? 'bg-amber-500/10 border-amber-500/30'
-                : 'bg-[#1c2333] border-[#30363d]'
+                ? 'bg-amber-50 border-amber-200'
+                : 'bg-[#F4F6F4] border-[#D4DAD6]'
             }`}>
               {preview.total === 0
-                ? <AlertCircle size={14} className="text-amber-400" />
-                : <CheckCircle size={14} className="text-emerald-400" />}
-              <span className={`text-sm ${preview.total === 0 ? 'text-amber-300' : 'text-gray-300'}`}>
+                ? <AlertCircle size={14} className="text-amber-600" />
+                : <CheckCircle size={14} className="text-emerald-600" />}
+              <span className={`text-sm ${preview.total === 0 ? 'text-amber-700' : 'text-[#1A1A1A]'}`}>
                 {preview.total === 0 ? 'Nenhum registro encontrado' : `${preview.total} registros detectados`}
               </span>
             </div>
             {preview.errors.length > 0 && (
-              <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">
-                <AlertCircle size={14} className="text-red-400" />
-                <span className="text-sm text-red-400">{preview.errors.length} erro(s) de estrutura</span>
+              <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                <AlertCircle size={14} className="text-red-600" />
+                <span className="text-sm text-red-600">{preview.errors.length} erro(s) de estrutura</span>
               </div>
             )}
           </div>
 
           {/* Errors */}
           {preview.errors.length > 0 && (
-            <div className="bg-red-500/5 border border-red-500/20 rounded-lg p-4">
-              <h4 className="text-sm font-semibold text-red-400 mb-2">Avisos estruturais</h4>
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <h4 className="text-sm font-semibold text-red-600 mb-2">Avisos estruturais</h4>
               <ul className="space-y-1">
                 {preview.errors.map((e, i) => (
-                  <li key={i} className="text-xs text-red-300/80 flex gap-2">
-                    <span className="text-red-500">•</span> {e}
+                  <li key={i} className="text-xs text-red-500 flex gap-2">
+                    <span className="text-red-400">•</span> {e}
                   </li>
                 ))}
               </ul>
@@ -179,21 +179,21 @@ export default function ImportarPage() {
 
           {/* Preview table */}
           <div>
-            <h3 className="text-sm font-semibold text-gray-300 mb-2">Pré-visualização (primeiras 5 linhas)</h3>
-            <div className="bg-[#161b22] border border-[#30363d] rounded-lg overflow-x-auto">
+            <h3 className="text-sm font-semibold text-[#1A1A1A] mb-2">Pré-visualização (primeiras 5 linhas)</h3>
+            <div className="bg-white border border-[#D4DAD6] rounded-lg overflow-x-auto">
               <table className="text-xs w-full">
                 <thead>
-                  <tr className="border-b border-[#30363d]">
+                  <tr className="border-b border-[#D4DAD6]">
                     {preview.headers.map((h) => (
-                      <th key={h} className="px-3 py-2 text-left text-[10px] uppercase tracking-wide text-gray-600 font-semibold bg-[#1c2333] whitespace-nowrap">{h}</th>
+                      <th key={h} className="px-3 py-2 text-left text-[10px] uppercase tracking-wide text-[#5A6A5E] font-semibold bg-[#F0F2F0] whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {preview.rows.map((row, i) => (
-                    <tr key={i} className="border-b border-[#30363d] last:border-0 hover:bg-[#1c2333]">
+                    <tr key={i} className="border-b border-[#D4DAD6] last:border-0 hover:bg-[#F4F6F4]">
                       {preview.headers.map((h) => (
-                        <td key={h} className="px-3 py-2 text-gray-400 whitespace-nowrap max-w-[120px] truncate">
+                        <td key={h} className="px-3 py-2 text-[#5A6A5E] whitespace-nowrap max-w-[120px] truncate">
                           {String(row[h] ?? '—')}
                         </td>
                       ))}
@@ -228,35 +228,35 @@ export default function ImportarPage() {
 
       {/* Step 3: Done */}
       {stage === 'done' && (
-        <div className="bg-[#161b22] border border-[#30363d] rounded-xl p-10 flex flex-col items-center text-center">
-          <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${imported > 0 ? 'bg-emerald-500/15' : 'bg-amber-500/15'}`}>
-            <CheckCircle size={32} className={imported > 0 ? 'text-emerald-400' : 'text-amber-400'} />
+        <div className="bg-white border border-[#D4DAD6] rounded-xl p-10 flex flex-col items-center text-center">
+          <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${imported > 0 ? 'bg-emerald-50' : 'bg-amber-50'}`}>
+            <CheckCircle size={32} className={imported > 0 ? 'text-emerald-600' : 'text-amber-600'} />
           </div>
-          <h2 className="text-xl font-bold text-gray-100 mb-1">Importação concluída</h2>
+          <h2 className="text-xl font-bold text-[#1A1A1A] mb-1">Importação concluída</h2>
           <div className="flex flex-wrap justify-center gap-2 mb-6">
             {imported > 0 && (
-              <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-full px-3 py-1">
+              <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-emerald-100 border border-emerald-200 text-emerald-700 rounded-full px-3 py-1">
                 <CheckCircle size={11} /> {imported} importado{imported !== 1 ? 's' : ''}
               </span>
             )}
             {duplicates > 0 && (
-              <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-full px-3 py-1">
+              <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-amber-100 border border-amber-200 text-amber-700 rounded-full px-3 py-1">
                 ⊘ {duplicates} duplicata{duplicates !== 1 ? 's' : ''} ignorada{duplicates !== 1 ? 's' : ''}
               </span>
             )}
             {importErrors.length > 0 && (
-              <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-red-500/10 border border-red-500/30 text-red-400 rounded-full px-3 py-1">
+              <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-red-100 border border-red-200 text-red-600 rounded-full px-3 py-1">
                 <AlertCircle size={11} /> {importErrors.length} erro{importErrors.length !== 1 ? 's' : ''}
               </span>
             )}
           </div>
 
           {importErrors.length > 0 && (
-            <div className="w-full bg-red-500/5 border border-red-500/20 rounded-lg p-4 mb-6 text-left">
-              <h4 className="text-sm font-semibold text-red-400 mb-2">Erros durante a importação</h4>
+            <div className="w-full bg-red-50 border border-red-200 rounded-lg p-4 mb-6 text-left">
+              <h4 className="text-sm font-semibold text-red-600 mb-2">Erros durante a importação</h4>
               <ul className="space-y-1 max-h-32 overflow-y-auto">
                 {importErrors.map((e, i) => (
-                  <li key={i} className="text-xs text-red-300/80">• {e}</li>
+                  <li key={i} className="text-xs text-red-500">• {e}</li>
                 ))}
               </ul>
             </div>

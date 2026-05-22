@@ -9,7 +9,6 @@ import { calcDias } from '../../lib/utils'
 import { useLotesStore } from '../../store/lotesStore'
 import type { Lote } from '../../types'
 
-// ── Regras de valor investido por analista ────────────────────────────────────
 function computeValorDevido(analista: string, formato: string, qtdAnalisada: number): number | null {
   const first = analista.trim().split(' ')[0].toLowerCase()
   if (first === 'rodrigo') return 0
@@ -19,7 +18,7 @@ function computeValorDevido(analista: string, formato: string, qtdAnalisada: num
     const mult = formato === 'REVISÃO' ? 1.5 : 2
     return Math.round(qtdAnalisada * mult * 100) / 100
   }
-  return null // sem regra automática para este analista
+  return null
 }
 
 function valorFormulaLabel(analista: string, formato: string, qtdAnalisada: number): string {
@@ -36,7 +35,6 @@ function valorFormulaLabel(analista: string, formato: string, qtdAnalisada: numb
   return ''
 }
 
-// ── Schema ────────────────────────────────────────────────────────────────────
 const schema = z.object({
   trt:           z.string().min(1, 'Selecione o TRT'),
   perito:        z.string().min(2, 'Nome do perito obrigatório'),
@@ -48,7 +46,7 @@ const schema = z.object({
   formato:       z.enum(['NOVO', 'REVISÃO']),
   envio:         z.string().min(1, 'Data de envio obrigatória'),
   entrega:       z.string(),
-  mesRef:        z.string(), // calculado automaticamente, não exibido
+  mesRef:        z.string(),
   valorDevido:   z.number().min(0),
   pago:          z.boolean(),
   qtdTotal:      z.number().min(0),
@@ -109,16 +107,13 @@ export function LoteForm({ defaultValues, onSubmit, onCancel, submitLabel = 'Sal
   const formato      = watch('formato')
   const qtdAnalisada = watch('qtdAnalisada')
 
-  // ── Prazo: mesmo dia → 1 dia ──────────────────────────────────────────────
   const qtdDias = calcDias(envio, entrega)
 
-  // ── mesRef automático: entrega (se preenchida) senão envio ────────────────
   useEffect(() => {
     const base = entrega || envio
     setValue('mesRef', base ? base.substring(0, 7) + '-01' : '')
   }, [envio, entrega, setValue])
 
-  // ── Valor investido por analista ──────────────────────────────────────────
   useEffect(() => {
     const computed = computeValorDevido(analista, formato, qtdAnalisada)
     if (computed !== null) setValue('valorDevido', computed)
@@ -126,7 +121,6 @@ export function LoteForm({ defaultValues, onSubmit, onCancel, submitLabel = 'Sal
 
   const isValorAuto = computeValorDevido(analista, formato, qtdAnalisada) !== null
 
-  // ── Mês de referência para exibição ──────────────────────────────────────
   function mesRefLabel(): string {
     const base = entrega || envio
     if (!base) return ''
@@ -137,7 +131,6 @@ export function LoteForm({ defaultValues, onSubmit, onCancel, submitLabel = 'Sal
 
   const handleValid: SubmitHandler<LoteFormData> = (data) => {
     const regiao  = REGIAO_MAP[data.trt] ?? data.trt
-    // Garante mesRef consistente no momento do envio
     const base    = data.entrega || data.envio
     const mesRef  = base ? base.substring(0, 7) + '-01' : ''
     onSubmit({ ...data, mesRef, regiao, qtdDias })
@@ -202,7 +195,7 @@ export function LoteForm({ defaultValues, onSubmit, onCancel, submitLabel = 'Sal
                 <button
                   type="button"
                   onClick={() => { setPeritoMode('select'); setValue('perito', '') }}
-                  className="shrink-0 h-8 px-2 text-xs text-gray-500 hover:text-gray-300 bg-[#1c2333] border border-[#30363d] rounded-md transition-colors whitespace-nowrap"
+                  className="shrink-0 h-8 px-2 text-xs text-[#5A6A5E] hover:text-[#1A1A1A] bg-white border border-[#D4DAD6] rounded-md transition-colors whitespace-nowrap"
                 >
                   ← Lista
                 </button>
@@ -256,7 +249,7 @@ export function LoteForm({ defaultValues, onSubmit, onCancel, submitLabel = 'Sal
         </FormField>
       </div>
 
-      {/* Row 4: Datas (mesRef é calculado automaticamente, não exibido) */}
+      {/* Row 4: Datas */}
       <div className="grid grid-cols-2 gap-4">
         <FormField label="Data de Envio" required error={errors.envio?.message}>
           <Input {...register('envio')} type="date" error={errors.envio?.message} />
@@ -266,23 +259,23 @@ export function LoteForm({ defaultValues, onSubmit, onCancel, submitLabel = 'Sal
         </FormField>
       </div>
 
-      {/* Info automática: prazo + mês de referência */}
+      {/* Info automática */}
       {envio && (
-        <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-gray-500 -mt-2 px-0.5">
+        <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-[#5A6A5E] -mt-2 px-0.5">
           {entrega && (
             <span>
               Prazo:{' '}
-              <span className="text-blue-400 font-semibold">{qtdDias} dia{qtdDias !== 1 ? 's' : ''}</span>
+              <span className="text-[#2D7A47] font-semibold">{qtdDias} dia{qtdDias !== 1 ? 's' : ''}</span>
               {envio === entrega && (
-                <span className="ml-1.5 text-amber-400/80">(mesmo dia → contado como 1)</span>
+                <span className="ml-1.5 text-amber-600/80">(mesmo dia → contado como 1)</span>
               )}
             </span>
           )}
           <span>
             Mês de referência:{' '}
-            <span className="text-gray-300 font-medium capitalize">{mesRefLabel()}</span>
+            <span className="text-[#1A1A1A] font-medium capitalize">{mesRefLabel()}</span>
             {!entrega && (
-              <span className="ml-1.5 text-gray-600">← atualizará ao preencher entrega</span>
+              <span className="ml-1.5 text-[#9AA4A0]">← atualizará ao preencher entrega</span>
             )}
           </span>
         </div>
@@ -317,7 +310,7 @@ export function LoteForm({ defaultValues, onSubmit, onCancel, submitLabel = 'Sal
             error={errors.valorDevido?.message}
           />
           {isValorAuto && analista && (
-            <p className="mt-1 text-[11px] text-blue-400/80 leading-snug">
+            <p className="mt-1 text-[11px] text-[#1B4D2E]/70 leading-snug">
               ⚡ {valorFormulaLabel(analista, formato, qtdAnalisada)}
             </p>
           )}
@@ -329,15 +322,15 @@ export function LoteForm({ defaultValues, onSubmit, onCancel, submitLabel = 'Sal
               {...register('pago')}
               type="checkbox"
               id="pago"
-              className="w-4 h-4 rounded border-gray-600 bg-[#0d1117] accent-blue-500"
+              className="w-4 h-4 rounded border-[#D4DAD6] bg-white accent-[#1B4D2E]"
             />
-            <label htmlFor="pago" className="text-sm text-gray-400">Marcado como pago</label>
+            <label htmlFor="pago" className="text-sm text-[#5A6A5E]">Marcado como pago</label>
           </div>
         </FormField>
       </div>
 
       {/* Ações */}
-      <div className="flex justify-end gap-2 pt-2 border-t border-[#30363d]">
+      <div className="flex justify-end gap-2 pt-2 border-t border-[#D4DAD6]">
         {onCancel && (
           <Button type="button" variant="secondary" onClick={onCancel}>Cancelar</Button>
         )}
