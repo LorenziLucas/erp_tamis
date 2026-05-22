@@ -57,7 +57,7 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <div className="flex justify-center mb-3">
             <img
-              src="/logo-tamis.svg"
+              src="/logo-tamis.jpg"
               alt="ERP Tamis"
               className="h-16 w-auto"
               onError={(e) => {
