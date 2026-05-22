@@ -59,7 +59,7 @@ export default function LoginPage() {
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-600 to-purple-600 mb-4 shadow-lg shadow-blue-500/20">
             <ShieldCheck size={26} className="text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-100">Gestão de Lotes</h1>
+          <h1 className="text-2xl font-bold text-gray-100">ERP Tamis</h1>
           <p className="text-sm text-gray-500 mt-1">Sistema pericial · TRT</p>
         </div>
 
