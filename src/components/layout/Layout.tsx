@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
+import { ErrorBoundary } from '../ErrorBoundary'
 
 export function Layout() {
   const [collapsed, setCollapsed] = useState(false)
@@ -12,7 +13,9 @@ export function Layout() {
         className="min-h-screen transition-all duration-200"
         style={{ marginLeft: collapsed ? 56 : 224 }}
       >
-        <Outlet />
+        <ErrorBoundary>
+          <Outlet />
+        </ErrorBoundary>
       </main>
     </div>
   )
