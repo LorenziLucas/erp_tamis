@@ -606,7 +606,7 @@ export default function Dashboard() {
     scales: {
       x:  { grid: { color: DARK.grid }, ticks: { color: DARK.text } },
       y:  { grid: { color: DARK.grid }, ticks: { color: C.blue, stepSize: 1 }, title: { display: true, text: 'Lotes', color: C.blue, font: { size: 10 } } },
-      y2: { position: 'right' as const, grid: { display: false }, ticks: { callback: (v: number | string) => Number(v).toLocaleString('pt-BR'), color: C.purple }, title: { display: true, text: 'Qtd P', color: C.purple, font: { size: 10 } } },
+      y2: { position: 'right' as const, grid: { display: false }, ticks: { callback: (v: number | string) => Number(v).toLocaleString('pt-BR'), color: C.purple }, title: { display: true, text: 'Peticionados', color: C.purple, font: { size: 10 } } },
       y3: { display: false },
     },
   }
