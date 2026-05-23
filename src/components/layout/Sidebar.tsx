@@ -3,7 +3,7 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Table2, PlusCircle, Upload,
   Settings, ChevronLeft, ChevronRight, LogOut, User,
-  ChevronDown, Layers, Wallet, Trash2, AlertTriangle,
+  ChevronDown, Layers, Wallet, Trash2, AlertTriangle, ReceiptText,
 } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { useLotesStore } from '../../store/lotesStore'
@@ -29,10 +29,13 @@ export function Sidebar({ collapsed, onToggle }: Props) {
 
   const clearAll = useLotesStore((s) => s.clearAll)
 
-  const [loteOpen,     setLoteOpen]     = useState(true)
-  const [confirmClear, setConfirmClear] = useState(false)
   const location = useLocation()
-  const isLoteActive = location.pathname === '/' || location.pathname.startsWith('/lotes')
+  const isLoteActive       = location.pathname === '/' || location.pathname.startsWith('/lotes')
+  const isFinanceiroActive = location.pathname.startsWith('/financeiro')
+
+  const [loteOpen,       setLoteOpen]       = useState(true)
+  const [financeiroOpen, setFinanceiroOpen] = useState(() => location.pathname.startsWith('/financeiro'))
+  const [confirmClear,   setConfirmClear]   = useState(false)
 
   const handleLogout = async () => {
     await logout()
@@ -86,12 +89,18 @@ export function Sidebar({ collapsed, onToggle }: Props) {
 
             <div className="w-6 h-px bg-white/10 my-1" />
 
-            <div
-              title="Gestão Financeira (em breve)"
-              className="w-9 h-9 flex items-center justify-center rounded-md cursor-not-allowed"
+            <button
+              onClick={onToggle}
+              title="Gestão Financeira"
+              className={cn(
+                'w-9 h-9 flex items-center justify-center rounded-md transition-colors',
+                isFinanceiroActive
+                  ? 'bg-white/20 text-[#F5C518]'
+                  : 'text-white/50 hover:text-white hover:bg-white/10',
+              )}
             >
-              <Wallet size={15} className="text-white/20" />
-            </div>
+              <Wallet size={15} />
+            </button>
           </div>
         ) : (
           <div className="space-y-1">
@@ -141,22 +150,48 @@ export function Sidebar({ collapsed, onToggle }: Props) {
               )}
             </div>
 
-            {/* ── Grupo 2: Gestão Financeira (em breve) ─────────────────────── */}
+            {/* ── Grupo 2: Gestão Financeira ────────────────────────────────── */}
             <div>
-              <div
+              <button
+                onClick={() => setFinanceiroOpen((o) => !o)}
                 className={cn(
-                  'flex items-center gap-2 px-2.5 py-2 rounded-md',
+                  'w-full flex items-center gap-2 px-2.5 py-2 rounded-md transition-colors',
                   'text-xs font-semibold uppercase tracking-wider',
-                  'text-white/25 cursor-not-allowed select-none',
+                  isFinanceiroActive
+                    ? 'text-[#F5C518] bg-white/10'
+                    : 'text-white/50 hover:text-white hover:bg-white/10',
                 )}
-                title="Em desenvolvimento"
               >
-                <Wallet size={13} className="shrink-0" />
+                <Wallet size={13} className={cn('shrink-0', isFinanceiroActive ? 'text-[#F5C518]' : 'text-[#F5C518]/60')} />
                 <span className="flex-1 text-left">Gestão Financeira</span>
-                <span className="text-[9px] font-medium bg-white/10 text-white/25 rounded px-1.5 py-0.5 tracking-wide normal-case">
-                  Em breve
-                </span>
-              </div>
+                <ChevronDown
+                  size={12}
+                  className={cn(
+                    'text-white/30 transition-transform duration-200',
+                    financeiroOpen && 'rotate-180',
+                  )}
+                />
+              </button>
+
+              {financeiroOpen && (
+                <div className="mt-0.5 ml-4 pl-2.5 border-l border-white/10 space-y-0.5">
+                  <NavLink
+                    to="/financeiro/cobrancas"
+                    className={({ isActive }) =>
+                      cn(
+                        'flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm font-medium transition-colors',
+                        isActive
+                          ? 'bg-[#2D7A47] text-white'
+                          : 'text-white/60 hover:text-white hover:bg-white/10',
+                      )
+                    }
+                  >
+                    <ReceiptText size={14} className="shrink-0" />
+                    Cobranças
+                  </NavLink>
+                  {/* Espaço para Fluxo de Caixa (futuro) */}
+                </div>
+              )}
             </div>
 
           </div>

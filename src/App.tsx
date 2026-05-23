@@ -7,6 +7,7 @@ import LotesPage from './pages/lotes/LotesPage'
 import NovoLotePage from './pages/lotes/NovoLotePage'
 import ImportarPage from './pages/lotes/ImportarPage'
 import LoginPage from './pages/LoginPage'
+import CobrancasPage from './pages/cobrancas/CobrancasPage'
 
 /** Redireciona para /login se não autenticado; mostra nada enquanto carrega */
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -34,6 +35,7 @@ function AppRoutes() {
         <Route path="/lotes" element={<LotesPage />} />
         <Route path="/lotes/novo" element={<NovoLotePage />} />
         <Route path="/lotes/importar" element={<ImportarPage />} />
+        <Route path="/financeiro/cobrancas" element={<CobrancasPage />} />
       </Route>
 
       {/* Qualquer rota desconhecida → home */}
