@@ -546,7 +546,7 @@ export default function Dashboard() {
       },
       {
         type: 'line' as const,
-        label: 'Valor Investido (R$)',
+        label: 'Peticionados',
         data: trendMonths.map((m) => m.qtdP),
         borderColor: C.purple,
         backgroundColor: `${C.purple}22`,
