@@ -513,7 +513,7 @@ export default function Dashboard() {
   const trendMonths = last12Months.map(({ key, label }) => ({
     key,
     label,
-    ...(byMesMap.get(key) ?? { lotes: 0, valor: 0, qtd: 0 }),
+    ...(byMesMap.get(key) ?? { lotes: 0, valor: 0, qtd: 0, qtdP: 0 }),
   }))
 
   const trendData = {
@@ -547,7 +547,7 @@ export default function Dashboard() {
       {
         type: 'line' as const,
         label: 'Valor Investido (R$)',
-        data: trendMonths.map((m) => m.valor),
+        data: trendMonths.map((m) => m.qtdP),
         borderColor: C.purple,
         backgroundColor: `${C.purple}22`,
         borderWidth: 2.5,
@@ -595,7 +595,7 @@ export default function Dashboard() {
             switch (ctx.datasetIndex) {
               case 0: return ` Nº de Lotes: ${m.lotes}`
               case 1: return ` Processos Analisados: ${m.qtd.toLocaleString('pt-BR')}`
-              case 2: return ` Valor Investido: ${formatCurrency(m.valor)}`
+              case 2: return ` Qtd P: ${m.qtdP.toLocaleString('pt-BR')}`
               case 3: return ` Valor Médio/Lote: ${formatCurrency(m.lotes > 0 ? m.valor / m.lotes : 0)}`
               default: return ''
             }
@@ -606,7 +606,7 @@ export default function Dashboard() {
     scales: {
       x:  { grid: { color: DARK.grid }, ticks: { color: DARK.text } },
       y:  { grid: { color: DARK.grid }, ticks: { color: C.blue, stepSize: 1 }, title: { display: true, text: 'Lotes', color: C.blue, font: { size: 10 } } },
-      y2: { position: 'right' as const, grid: { display: false }, ticks: { callback: fmtTickK, color: C.purple }, title: { display: true, text: 'Valor (R$)', color: C.purple, font: { size: 10 } } },
+      y2: { position: 'right' as const, grid: { display: false }, ticks: { callback: (v: number | string) => Number(v).toLocaleString('pt-BR'), color: C.purple }, title: { display: true, text: 'Qtd P', color: C.purple, font: { size: 10 } } },
       y3: { display: false },
     },
   }

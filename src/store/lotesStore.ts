@@ -143,16 +143,17 @@ export function selectByFormato(lotes: Lote[]) {
 }
 
 export function selectByMes(lotes: Lote[]) {
-  const map: Record<string, { lotes: number; valor: number; qtd: number }> = {}
+  const map: Record<string, { lotes: number; valor: number; qtd: number; qtdP: number }> = {}
   for (const l of lotes) {
     if (!l.mesRef) continue
     const parts = l.mesRef.split('-')
     if (parts.length < 2) continue
     const key = `${parts[0]}-${parts[1]}`
-    if (!map[key]) map[key] = { lotes: 0, valor: 0, qtd: 0 }
+    if (!map[key]) map[key] = { lotes: 0, valor: 0, qtd: 0, qtdP: 0 }
     map[key].lotes++
     map[key].valor += l.valorDevido
     map[key].qtd += l.qtdAnalisada
+    map[key].qtdP += l.qtdP ?? 0
   }
   return Object.entries(map)
     .sort(([a], [b]) => a.localeCompare(b))
