@@ -35,6 +35,10 @@ const CHART_BASE = {
   },
 }
 
+// Seletor estável em nível de módulo — seletores inline causam re-renders infinitos
+// no Zustand v5 porque criam nova referência de função a cada render.
+const selectLotes = (s: { lotes: { perito: string }[] }) => s.lotes
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function mesRefLabel(iso: string | null): string {
@@ -72,7 +76,11 @@ function buildPeritoRanking(cobrancas: Cobranca[]) {
 export default function CobrancasPage() {
   const { cobrancas, peritos, loading, error, fetchAll, addCobranca, updateCobranca, deleteCobranca, saveCpf } =
     useCobrancasStore()
-  const lotesPeritos = useLotesStore((s) => [...new Set(s.lotes.map((l) => l.perito))].sort())
+  const lotes = useLotesStore(selectLotes)
+  const lotesPeritos = useMemo(
+    () => [...new Set(lotes.map((l) => l.perito))].sort(),
+    [lotes],
+  )
   const { success: toastSuccess, error: toastError } = useToast()
 
   const [modalOpen,   setModalOpen]   = useState(false)
