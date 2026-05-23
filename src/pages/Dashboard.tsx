@@ -838,7 +838,7 @@ export default function Dashboard() {
       </div>
 
       {/* Row 1 — Tendência mensal */}
-      <ChartCard title="Volume Mensal de Lotes e Valor Investido" className="min-h-[280px]">
+      <ChartCard title="Volume Mensal de Lotes e Peticionados" className="min-h-[280px]">
         <Line data={trendData as Parameters<typeof Line>[0]['data']} options={trendOptions as Parameters<typeof Line>[0]['options']} />
       </ChartCard>
 
