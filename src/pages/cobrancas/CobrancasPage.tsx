@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   Chart as ChartJS,
   CategoryScale, LinearScale, BarElement, Tooltip, Legend,
+  type TooltipItem,
 } from 'chart.js'
 import { Bar } from 'react-chartjs-2'
 import {
@@ -166,8 +167,8 @@ export default function CobrancasPage() {
       ...CHART_BASE.plugins,
       tooltip: {
         callbacks: {
-          label: (ctx: { dataset: { label?: string }; parsed: { y: number } }) =>
-            ` ${ctx.dataset.label}: ${formatCurrency(ctx.parsed.y)}`,
+          label: (ctx: TooltipItem<'bar'>) =>
+            ` ${ctx.dataset.label}: ${formatCurrency(ctx.parsed.y ?? 0)}`,
         },
       },
     },
@@ -184,7 +185,7 @@ export default function CobrancasPage() {
       ...CHART_BASE.plugins,
       tooltip: {
         callbacks: {
-          label: (ctx: { parsed: { x: number } }) => ` ${formatCurrency(ctx.parsed.x)}`,
+          label: (ctx: TooltipItem<'bar'>) => ` ${formatCurrency(ctx.parsed.x ?? 0)}`,
         },
       },
     },
