@@ -595,7 +595,7 @@ export default function Dashboard() {
             switch (ctx.datasetIndex) {
               case 0: return ` Nº de Lotes: ${m.lotes}`
               case 1: return ` Processos Analisados: ${m.qtd.toLocaleString('pt-BR')}`
-              case 2: return ` Qtd P: ${m.qtdP.toLocaleString('pt-BR')}`
+              case 2: return ` Peticionados: ${m.qtdP.toLocaleString('pt-BR')}`
               case 3: return ` Valor Médio/Lote: ${formatCurrency(m.lotes > 0 ? m.valor / m.lotes : 0)}`
               default: return ''
             }
