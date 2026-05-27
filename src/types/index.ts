@@ -7,7 +7,7 @@ export interface Lote {
   analista: string
   qtdAnalisada: number
   analise: '1ª' | '2ª'
-  tipo: 'PJE' | 'MISTO' | 'FÍSICO'
+  tipo: 'PJE' | 'MISTO' | 'FÍSICO' | 'CONF. ALVARÁ'
   formato: 'NOVO' | 'REVISÃO'
   envio: string        // ISO date string
   entrega: string      // ISO date string
@@ -41,7 +41,7 @@ export const ANALISTA_OPTIONS = [
   'Rodrigo Baptista',
 ]
 
-export const TIPO_OPTIONS = ['PJE', 'MISTO', 'FÍSICO'] as const
+export const TIPO_OPTIONS = ['PJE', 'MISTO', 'FÍSICO', 'CONF. ALVARÁ'] as const
 export const FORMATO_OPTIONS = ['NOVO', 'REVISÃO'] as const
 export const ANALISE_OPTIONS = ['1ª', '2ª'] as const
 

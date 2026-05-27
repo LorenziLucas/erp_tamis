@@ -9,7 +9,9 @@ import { calcDias } from '../../lib/utils'
 import { useLotesStore } from '../../store/lotesStore'
 import type { Lote } from '../../types'
 
-function computeValorDevido(analista: string, formato: string, qtdAnalisada: number): number | null {
+function computeValorDevido(analista: string, formato: string, qtdAnalisada: number, tipo: string): number | null {
+  if (tipo === 'CONF. ALVARÁ' && formato === 'REVISÃO')
+    return Math.round(qtdAnalisada * 1 * 100) / 100
   const first = analista.trim().split(' ')[0].toLowerCase()
   if (first === 'rodrigo') return 0
   if (first === 'matheus') return Math.round(qtdAnalisada * 1.5 * 100) / 100
@@ -21,10 +23,12 @@ function computeValorDevido(analista: string, formato: string, qtdAnalisada: num
   return null
 }
 
-function valorFormulaLabel(analista: string, formato: string, qtdAnalisada: number): string {
+function valorFormulaLabel(analista: string, formato: string, qtdAnalisada: number, tipo: string): string {
+  const f2 = (n: number) => n.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
+  if (tipo === 'CONF. ALVARÁ' && formato === 'REVISÃO')
+    return `CONF. ALVARÁ (REVISÃO): ${qtdAnalisada} × R$ 1,00 = R$ ${f2(qtdAnalisada * 1)}`
   const first = analista.trim().split(' ')[0]
   const fl    = first.toLowerCase()
-  const f2 = (n: number) => n.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
   if (fl === 'rodrigo') return `${first}: valor fixo R$ 0,00`
   if (fl === 'matheus') return `${first}: ${qtdAnalisada} × R$ 1,50 = R$ ${f2(qtdAnalisada * 1.5)}`
   if (fl === 'mabel')   return `${first}: ${qtdAnalisada} × R$ 1,50 = R$ ${f2(qtdAnalisada * 1.5)}`
@@ -42,7 +46,7 @@ const schema = z.object({
   analista:      z.string().min(1, 'Selecione o analista'),
   qtdAnalisada:  z.number().min(1, 'Qtd deve ser >= 1'),
   analise:       z.enum(['1ª', '2ª']),
-  tipo:          z.enum(['PJE', 'MISTO', 'FÍSICO']),
+  tipo:          z.enum(['PJE', 'MISTO', 'FÍSICO', 'CONF. ALVARÁ']),
   formato:       z.enum(['NOVO', 'REVISÃO']),
   envio:         z.string().min(1, 'Data de envio obrigatória'),
   entrega:       z.string(),
@@ -105,6 +109,7 @@ export function LoteForm({ defaultValues, onSubmit, onCancel, submitLabel = 'Sal
   const entrega      = watch('entrega')
   const analista     = watch('analista')
   const formato      = watch('formato')
+  const tipo         = watch('tipo')
   const qtdAnalisada = watch('qtdAnalisada')
 
   const qtdDias = calcDias(envio, entrega)
@@ -115,11 +120,11 @@ export function LoteForm({ defaultValues, onSubmit, onCancel, submitLabel = 'Sal
   }, [envio, entrega, setValue])
 
   useEffect(() => {
-    const computed = computeValorDevido(analista, formato, qtdAnalisada)
+    const computed = computeValorDevido(analista, formato, qtdAnalisada, tipo)
     if (computed !== null) setValue('valorDevido', computed)
-  }, [analista, formato, qtdAnalisada, setValue])
+  }, [analista, formato, tipo, qtdAnalisada, setValue])
 
-  const isValorAuto = computeValorDevido(analista, formato, qtdAnalisada) !== null
+  const isValorAuto = computeValorDevido(analista, formato, qtdAnalisada, tipo) !== null
 
   function mesRefLabel(): string {
     const base = entrega || envio
@@ -311,7 +316,7 @@ export function LoteForm({ defaultValues, onSubmit, onCancel, submitLabel = 'Sal
           />
           {isValorAuto && analista && (
             <p className="mt-1 text-[11px] text-[#1B4D2E]/70 leading-snug">
-              ⚡ {valorFormulaLabel(analista, formato, qtdAnalisada)}
+              ⚡ {valorFormulaLabel(analista, formato, qtdAnalisada, tipo)}
             </p>
           )}
         </FormField>
