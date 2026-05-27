@@ -3,7 +3,7 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Table2, PlusCircle, Upload,
   Settings, ChevronLeft, ChevronRight, LogOut, User,
-  ChevronDown, Layers, Wallet, Trash2, AlertTriangle, ReceiptText,
+  ChevronDown, Layers, Wallet, Trash2, AlertTriangle, ReceiptText, BookUser, FolderOpen,
 } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { useLotesStore } from '../../store/lotesStore'
@@ -32,9 +32,11 @@ export function Sidebar({ collapsed, onToggle }: Props) {
   const location = useLocation()
   const isLoteActive       = location.pathname === '/' || location.pathname.startsWith('/lotes')
   const isFinanceiroActive = location.pathname.startsWith('/financeiro')
+  const isCadastrosActive  = location.pathname.startsWith('/cadastros')
 
   const [loteOpen,       setLoteOpen]       = useState(true)
   const [financeiroOpen, setFinanceiroOpen] = useState(() => location.pathname.startsWith('/financeiro'))
+  const [cadastrosOpen,  setCadastrosOpen]  = useState(() => location.pathname.startsWith('/cadastros'))
   const [confirmClear,   setConfirmClear]   = useState(false)
 
   const handleLogout = async () => {
@@ -100,6 +102,21 @@ export function Sidebar({ collapsed, onToggle }: Props) {
               )}
             >
               <Wallet size={15} />
+            </button>
+
+            <div className="w-6 h-px bg-white/10 my-1" />
+
+            <button
+              onClick={onToggle}
+              title="Cadastros"
+              className={cn(
+                'w-9 h-9 flex items-center justify-center rounded-md transition-colors',
+                isCadastrosActive
+                  ? 'bg-white/20 text-[#F5C518]'
+                  : 'text-white/50 hover:text-white hover:bg-white/10',
+              )}
+            >
+              <FolderOpen size={15} />
             </button>
           </div>
         ) : (
@@ -189,7 +206,46 @@ export function Sidebar({ collapsed, onToggle }: Props) {
                     <ReceiptText size={14} className="shrink-0" />
                     Cobranças
                   </NavLink>
-                  {/* Espaço para Fluxo de Caixa (futuro) */}
+                </div>
+              )}
+            </div>
+
+            {/* ── Grupo 3: Cadastros ────────────────────────────────────────── */}
+            <div>
+              <button
+                onClick={() => setCadastrosOpen((o) => !o)}
+                className={cn(
+                  'w-full flex items-center gap-2 px-2.5 py-2 rounded-md transition-colors',
+                  'text-xs font-semibold uppercase tracking-wider',
+                  isCadastrosActive
+                    ? 'text-[#F5C518] bg-white/10'
+                    : 'text-white/50 hover:text-white hover:bg-white/10',
+                )}
+              >
+                <FolderOpen size={13} className={cn('shrink-0', isCadastrosActive ? 'text-[#F5C518]' : 'text-[#F5C518]/60')} />
+                <span className="flex-1 text-left">Cadastros</span>
+                <ChevronDown
+                  size={12}
+                  className={cn('text-white/30 transition-transform duration-200', cadastrosOpen && 'rotate-180')}
+                />
+              </button>
+
+              {cadastrosOpen && (
+                <div className="mt-0.5 ml-4 pl-2.5 border-l border-white/10 space-y-0.5">
+                  <NavLink
+                    to="/cadastros/peritos"
+                    className={({ isActive }) =>
+                      cn(
+                        'flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm font-medium transition-colors',
+                        isActive
+                          ? 'bg-[#2D7A47] text-white'
+                          : 'text-white/60 hover:text-white hover:bg-white/10',
+                      )
+                    }
+                  >
+                    <BookUser size={14} className="shrink-0" />
+                    Peritos
+                  </NavLink>
                 </div>
               )}
             </div>

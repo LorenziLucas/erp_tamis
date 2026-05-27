@@ -1,8 +1,23 @@
+export interface TRT {
+  id: string
+  numero: number
+  descricao: string
+  cidadeSede: string
+}
+
+export interface PeritoCadastro {
+  id: string
+  nome: string
+  trtsVinculados: TRT[]
+}
+
 export interface Lote {
   id: string
   trt: string
   regiao: string
   perito: string
+  trtId?: string
+  peritoId?: string
   lote: number
   analista: string
   qtdAnalisada: number

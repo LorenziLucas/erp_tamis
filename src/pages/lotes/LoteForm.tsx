@@ -1,12 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useForm, Controller, type SubmitHandler } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Input, Select, FormField } from '../../components/ui/Input'
 import { Button } from '../../components/ui/Button'
-import { TRT_OPTIONS, REGIAO_MAP, ANALISTA_OPTIONS, TIPO_OPTIONS, FORMATO_OPTIONS, ANALISE_OPTIONS } from '../../types'
+import { SeletorTRTPerito } from '../../components/SeletorTRTPerito'
+import { REGIAO_MAP, ANALISTA_OPTIONS, TIPO_OPTIONS, FORMATO_OPTIONS, ANALISE_OPTIONS } from '../../types'
 import { calcDias } from '../../lib/utils'
-import { useLotesStore } from '../../store/lotesStore'
 import type { Lote } from '../../types'
 
 function computeValorDevido(analista: string, formato: string, qtdAnalisada: number, tipo: string): number | null {
@@ -46,6 +46,8 @@ const schema = z.object({
   analista:      z.string().min(1, 'Selecione o analista'),
   qtdAnalisada:  z.number().min(1, 'Qtd deve ser >= 1'),
   analise:       z.enum(['1ª', '2ª']),
+  trtId:         z.string().optional(),
+  peritoId:      z.string().optional(),
   tipo:          z.enum(['PJE', 'MISTO', 'FÍSICO', 'CONF. ALVARÁ']),
   formato:       z.enum(['NOVO', 'REVISÃO']),
   envio:         z.string().min(1, 'Data de envio obrigatória'),
@@ -69,13 +71,6 @@ interface Props {
 }
 
 export function LoteForm({ defaultValues, onSubmit, onCancel, submitLabel = 'Salvar', loading }: Props) {
-  const lotesNoStore      = useLotesStore((s) => s.lotes)
-  const peritosExistentes = [...new Set(lotesNoStore.map((l) => l.perito))].sort()
-
-  const [peritoMode, setPeritoMode] = useState<'select' | 'new'>(
-    defaultValues?.perito ? 'new' : 'select'
-  )
-
   const {
     register,
     handleSubmit,
@@ -88,6 +83,8 @@ export function LoteForm({ defaultValues, onSubmit, onCancel, submitLabel = 'Sal
     defaultValues: {
       trt:           defaultValues?.trt           ?? '',
       perito:        defaultValues?.perito         ?? '',
+      trtId:         defaultValues?.trtId          ?? '',
+      peritoId:      defaultValues?.peritoId       ?? '',
       lote:          defaultValues?.lote           ?? 1,
       analista:      defaultValues?.analista       ?? '',
       qtdAnalisada:  defaultValues?.qtdAnalisada   ?? 0,
@@ -144,71 +141,24 @@ export function LoteForm({ defaultValues, onSubmit, onCancel, submitLabel = 'Sal
   return (
     <form onSubmit={handleSubmit(handleValid)} className="space-y-5">
 
-      {/* Row 1: TRT + Perito */}
-      <div className="grid grid-cols-2 gap-4">
-        <FormField label="TRT / Tribunal" required error={errors.trt?.message}>
-          <Controller
-            name="trt"
-            control={control}
-            render={({ field }) => (
-              <Select {...field} error={errors.trt?.message}>
-                <option value="">Selecione…</option>
-                {TRT_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </Select>
-            )}
-          />
-        </FormField>
-
-        <FormField label="Perito" required error={errors.perito?.message}>
-          {peritoMode === 'select' && peritosExistentes.length > 0 ? (
-            <div className="flex gap-1.5">
-              <Controller
-                name="perito"
-                control={control}
-                render={({ field }) => (
-                  <Select
-                    value={field.value}
-                    onChange={(e) => {
-                      if (e.target.value === '__novo__') {
-                        setPeritoMode('new'); field.onChange('')
-                      } else {
-                        field.onChange(e.target.value)
-                      }
-                    }}
-                    error={errors.perito?.message}
-                  >
-                    <option value="">Selecione um perito…</option>
-                    {peritosExistentes.map((p) => (
-                      <option key={p} value={p}>{p}</option>
-                    ))}
-                    <option value="__novo__">+ Novo perito (digitar nome)</option>
-                  </Select>
-                )}
-              />
-            </div>
-          ) : (
-            <div className="flex gap-1.5">
-              <Input
-                {...register('perito')}
-                placeholder="Nome completo do perito"
-                error={errors.perito?.message}
-                autoFocus={peritoMode === 'new'}
-              />
-              {peritosExistentes.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => { setPeritoMode('select'); setValue('perito', '') }}
-                  className="shrink-0 h-8 px-2 text-xs text-[#5A6A5E] hover:text-[#1A1A1A] bg-white border border-[#D4DAD6] rounded-md transition-colors whitespace-nowrap"
-                >
-                  ← Lista
-                </button>
-              )}
-            </div>
-          )}
-        </FormField>
-      </div>
+      {/* Row 1: TRT + Perito (seletor condicional) */}
+      <SeletorTRTPerito
+        trtId={watch('trtId') ?? ''}
+        peritoId={watch('peritoId') ?? ''}
+        onChangeTRT={(trtId, trt, regiao) => {
+          setValue('trtId',    trtId,  { shouldValidate: true, shouldDirty: true })
+          setValue('trt',      trt,    { shouldValidate: true, shouldDirty: true })
+          setValue('peritoId', '',     { shouldDirty: true })
+          setValue('perito',   '',     { shouldDirty: true })
+          void regiao
+        }}
+        onChangePerito={(peritoId, perito) => {
+          setValue('peritoId', peritoId, { shouldValidate: true, shouldDirty: true })
+          setValue('perito',   perito,   { shouldValidate: true, shouldDirty: true })
+        }}
+        erroTRT={errors.trt?.message}
+        erroPeito={errors.perito?.message}
+      />
 
       {/* Row 2: Lote + Analista */}
       <div className="grid grid-cols-2 gap-4">

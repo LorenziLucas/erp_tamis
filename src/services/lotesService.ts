@@ -12,6 +12,8 @@ export interface LoteDB {
   trt:            string
   regiao:         string
   perito:         string
+  trt_id:         string | null
+  perito_id:      string | null
   lote:           number
   analista:       string
   qtd_analisada:  number
@@ -40,6 +42,8 @@ export function dbToLote(row: LoteDB): Lote {
     trt:            row.trt,
     regiao:         row.regiao,
     perito:         row.perito,
+    trtId:          row.trt_id ?? undefined,
+    peritoId:       row.perito_id ?? undefined,
     lote:           row.lote,
     analista:       row.analista,
     qtdAnalisada:   row.qtd_analisada,
@@ -63,6 +67,8 @@ export function loteToDb(lote: Omit<Lote, 'id'>, userId: string): Omit<LoteDB, '
     trt:             lote.trt,
     regiao:          lote.regiao,
     perito:          lote.perito,
+    trt_id:          lote.trtId ?? null,
+    perito_id:       lote.peritoId ?? null,
     lote:            Math.round(lote.lote),
     analista:        lote.analista,
     qtd_analisada:   Math.round(lote.qtdAnalisada),
@@ -173,6 +179,8 @@ export async function atualizarLote(id: string, parcial: Partial<Omit<Lote, 'id'
   if (parcial.trt            !== undefined) patch.trt             = parcial.trt
   if (parcial.regiao         !== undefined) patch.regiao          = parcial.regiao
   if (parcial.perito         !== undefined) patch.perito          = parcial.perito
+  if (parcial.trtId          !== undefined) patch.trt_id          = parcial.trtId ?? null
+  if (parcial.peritoId       !== undefined) patch.perito_id       = parcial.peritoId ?? null
   if (parcial.lote           !== undefined) patch.lote            = parcial.lote
   if (parcial.analista       !== undefined) patch.analista        = parcial.analista
   if (parcial.qtdAnalisada   !== undefined) patch.qtd_analisada   = parcial.qtdAnalisada
