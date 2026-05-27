@@ -3,7 +3,7 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Table2, PlusCircle, Upload,
   Settings, ChevronLeft, ChevronRight, LogOut, User,
-  ChevronDown, Layers, Wallet, Trash2, AlertTriangle, ReceiptText, BookUser, FolderOpen,
+  ChevronDown, Layers, Wallet, Trash2, AlertTriangle, ReceiptText, BookUser, FolderOpen, MapPin,
 } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { useLotesStore } from '../../store/lotesStore'
@@ -245,6 +245,20 @@ export function Sidebar({ collapsed, onToggle }: Props) {
                   >
                     <BookUser size={14} className="shrink-0" />
                     Peritos
+                  </NavLink>
+                  <NavLink
+                    to="/cadastros/trts"
+                    className={({ isActive }) =>
+                      cn(
+                        'flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm font-medium transition-colors',
+                        isActive
+                          ? 'bg-[#2D7A47] text-white'
+                          : 'text-white/60 hover:text-white hover:bg-white/10',
+                      )
+                    }
+                  >
+                    <MapPin size={14} className="shrink-0" />
+                    TRTs
                   </NavLink>
                 </div>
               )}

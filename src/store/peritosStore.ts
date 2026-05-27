@@ -3,8 +3,10 @@ import type { TRT, PeritoCadastro } from '../types'
 import {
   getTRTs,
   getPeritos,
-  createPerito as svcCreate,
-  updatePerito as svcUpdate,
+  createPerito as svcCreatePerito,
+  updatePerito as svcUpdatePerito,
+  createTRT as svcCreateTRT,
+  updateTRT as svcUpdateTRT,
 } from '../services/peritosService'
 
 interface PeritosState {
@@ -17,6 +19,8 @@ interface PeritosState {
   fetchPeritos: () => Promise<void>
   createPerito: (nome: string, trtIds: string[]) => Promise<void>
   updatePerito: (id: string, nome: string, trtIds: string[]) => Promise<void>
+  createTRT:    (numero: number, cidadeSede: string) => Promise<void>
+  updateTRT:    (id: string, numero: number, cidadeSede: string) => Promise<void>
 }
 
 export const usePeritosStore = create<PeritosState>((set, get) => ({
@@ -41,15 +45,29 @@ export const usePeritosStore = create<PeritosState>((set, get) => ({
 
   createPerito: async (nome, trtIds) => {
     set({ loading: true, error: null })
-    const { data, error } = await svcCreate(nome, trtIds)
+    const { data, error } = await svcCreatePerito(nome, trtIds)
     if (error || !data) { set({ loading: false, error: String(error ?? 'Erro ao criar perito') }); return }
     set((state) => ({ peritos: [...state.peritos, data].sort((a, b) => a.nome.localeCompare(b.nome)), loading: false }))
   },
 
   updatePerito: async (id, nome, trtIds) => {
     set({ loading: true, error: null })
-    const { error } = await svcUpdate(id, nome, trtIds)
+    const { error } = await svcUpdatePerito(id, nome, trtIds)
     if (error) { set({ loading: false, error: String(error) }); return }
     await get().fetchPeritos()
+  },
+
+  createTRT: async (numero, cidadeSede) => {
+    set({ loading: true, error: null })
+    const { data, error } = await svcCreateTRT(numero, cidadeSede)
+    if (error || !data) { set({ loading: false, error: String(error ?? 'Erro ao criar TRT') }); return }
+    set((state) => ({ trts: [...state.trts, data].sort((a, b) => a.numero - b.numero), loading: false }))
+  },
+
+  updateTRT: async (id, numero, cidadeSede) => {
+    set({ loading: true, error: null })
+    const { error } = await svcUpdateTRT(id, numero, cidadeSede)
+    if (error) { set({ loading: false, error: String(error) }); return }
+    await get().fetchTRTs()
   },
 }))

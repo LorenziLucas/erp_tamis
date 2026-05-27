@@ -151,3 +151,26 @@ export async function updatePerito(id: string, nome: string, trtIds: string[]): 
 
   return { error: null }
 }
+
+// ── CRUD de TRTs ──────────────────────────────────────────────────────────────
+
+export async function createTRT(numero: number, cidadeSede: string): Promise<{ data: TRT | null; error: unknown }> {
+  const descricao = `${numero}ª Região`
+  const { data, error } = await supabase
+    .from('trts')
+    .insert({ numero, descricao, cidade_sede: cidadeSede })
+    .select('id,numero,descricao,cidade_sede')
+    .single()
+
+  return { data: data ? dbToTRT(data as TRTDB) : null, error }
+}
+
+export async function updateTRT(id: string, numero: number, cidadeSede: string): Promise<{ error: unknown }> {
+  const descricao = `${numero}ª Região`
+  const { error } = await supabase
+    .from('trts')
+    .update({ numero, descricao, cidade_sede: cidadeSede })
+    .eq('id', id)
+
+  return { error }
+}
