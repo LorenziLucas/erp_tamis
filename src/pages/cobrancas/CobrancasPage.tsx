@@ -63,19 +63,31 @@ function buildMonthlyData(cobrancas: Cobranca[]) {
   }
 }
 
+const REGIAO_COLORS = ['#2D7A47', '#2563EB', '#9B5CF6', '#39d0d8', '#f85149', '#e879f9']
+
 function buildRegiaoData(cobrancas: Cobranca[]) {
-  const map: Record<string, { comissao: number; lote: number }> = {}
+  const monthsSet = new Set<string>()
+  const regioesSet = new Set<string>()
   for (const c of cobrancas) {
-    const key = c.regiao || 'Sem Região'
-    if (!map[key]) map[key] = { comissao: 0, lote: 0 }
-    if (c.tipo === 'Comissão') map[key].comissao += c.valor
-    else                       map[key].lote     += c.valor
+    if (!c.mesRef) continue
+    monthsSet.add(c.mesRef.substring(0, 7))
+    regioesSet.add(c.regiao || 'Sem Região')
   }
-  const sorted = Object.entries(map).sort(([a], [b]) => a.localeCompare(b))
+  const months  = [...monthsSet].sort()
+  const regioes = [...regioesSet].sort()
+  const map: Record<string, Record<string, number>> = {}
+  for (const c of cobrancas) {
+    if (!c.mesRef) continue
+    const month  = c.mesRef.substring(0, 7)
+    const regiao = c.regiao || 'Sem Região'
+    if (!map[month]) map[month] = {}
+    map[month][regiao] = (map[month][regiao] ?? 0) + c.valor
+  }
   return {
-    labels:   sorted.map(([k]) => k),
-    comissao: sorted.map(([, v]) => v.comissao),
-    lote:     sorted.map(([, v]) => v.lote),
+    labels:  months.map((m) => formatMonthYear(`${m}-01`)),
+    regioes,
+    data:    regioes.map((r) => months.map((m) => map[m]?.[r] ?? 0)),
+    totals:  months.map((m) => Object.values(map[m] ?? {}).reduce((s, v) => s + v, 0)),
   }
 }
 
@@ -178,28 +190,19 @@ export default function CobrancasPage() {
   const regiaoChartData = {
     labels: regiao.labels,
     datasets: [
-      {
-        label: 'Comissão',
-        data: regiao.comissao,
-        backgroundColor: `${C.green}99`,
-        borderColor: C.green,
+      ...regiao.regioes.map((r, i) => ({
+        label: r,
+        data: regiao.data[i],
+        backgroundColor: `${REGIAO_COLORS[i % REGIAO_COLORS.length]}99`,
+        borderColor: REGIAO_COLORS[i % REGIAO_COLORS.length],
         borderWidth: 1,
         borderRadius: 4,
         yAxisID: 'y',
-      },
-      {
-        label: 'Lote',
-        data: regiao.lote,
-        backgroundColor: `${C.blue}99`,
-        borderColor: C.blue,
-        borderWidth: 1,
-        borderRadius: 4,
-        yAxisID: 'y',
-      },
+      })),
       {
         type: 'line' as const,
         label: 'Total',
-        data: regiao.comissao.map((v, i) => v + regiao.lote[i]),
+        data: regiao.totals,
         borderColor: C.orange,
         backgroundColor: 'transparent',
         borderWidth: 2,
