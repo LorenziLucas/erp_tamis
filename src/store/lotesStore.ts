@@ -51,8 +51,9 @@ export const useLotesStore = create<LotesState>((set, get) => ({
   addLote: async (lote) => {
     const { data, error } = await criarLote(lote)
     if (error || !data) {
-      set({ error: String((error as Error)?.message ?? 'Erro ao criar lote') })
-      return
+      const msg = String((error as Error)?.message ?? 'Erro ao criar lote')
+      set({ error: msg })
+      throw new Error(msg)
     }
     set((state) => ({ lotes: [data, ...state.lotes] }))
   },

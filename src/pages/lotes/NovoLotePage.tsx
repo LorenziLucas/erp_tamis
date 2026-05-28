@@ -9,12 +9,17 @@ import { Button } from '../../components/ui/Button'
 export default function NovoLotePage() {
   const navigate = useNavigate()
   const addLote = useLotesStore((s) => s.addLote)
-  const { success } = useToast()
+  const { success, error } = useToast()
 
   const handleSubmit = async (data: LoteFormData & { regiao: string; qtdDias: number }) => {
-    await addLote(data)
-    success('Lote cadastrado com sucesso!')
-    navigate('/lotes')
+    try {
+      await addLote(data)
+      success('Lote cadastrado com sucesso!')
+      navigate('/lotes')
+    } catch (err) {
+      error('Erro ao cadastrar lote. Verifique os dados e tente novamente.')
+      console.error('[NovoLotePage] erro ao salvar lote:', err)
+    }
   }
 
   return (
