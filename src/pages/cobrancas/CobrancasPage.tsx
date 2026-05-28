@@ -473,7 +473,6 @@ export default function CobrancasPage() {
                   return (
                     <tr className="border-b border-[#D4DAD6]">
                       <Th k="perito">Perito</Th>
-                      <Th k="cpfPerito">CPF</Th>
                       <Th k="regiao">Região</Th>
                       <Th k="mesRef">Mês Ref.</Th>
                       <Th k="dataEnvio">Envio</Th>
@@ -491,7 +490,6 @@ export default function CobrancasPage() {
                 {sorted.map((c) => (
                   <tr key={c.id} className="hover:bg-[#F4F6F4]/60 transition-colors">
                     <td className="px-4 py-3 font-medium text-[#1A1A1A] whitespace-nowrap">{c.perito}</td>
-                    <td className="px-4 py-3 text-[#5A6A5E] font-mono text-xs">{c.cpfPerito ?? '—'}</td>
                     <td className="px-4 py-3 text-[#5A6A5E] whitespace-nowrap">{c.regiao || '—'}</td>
                     <td className="px-4 py-3 text-[#5A6A5E] whitespace-nowrap">{mesRefLabel(c.mesRef)}</td>
                     <td className="px-4 py-3 text-[#5A6A5E] whitespace-nowrap">{formatDate(c.dataEnvio ?? '')}</td>
