@@ -109,11 +109,12 @@ export default function CobrancasPage() {
   const [saving,      setSaving]      = useState(false)
 
   // Filters
-  const [fPerito,   setFPerito]   = useState('')
-  const [fRegiao,   setFRegiao]   = useState('')
-  const [fMes,      setFMes]      = useState('')
-  const [fTipo,     setFTipo]     = useState('')
-  const [fRecebido, setFRecebido] = useState('')
+  const [fRegiao,     setFRegiao]     = useState('')
+  const [fPerito,     setFPerito]     = useState('')
+  const [fMesInicio,  setFMesInicio]  = useState('')
+  const [fMesFim,     setFMesFim]     = useState('')
+  const [fTipo,       setFTipo]       = useState('')
+  const [fRecebido,   setFRecebido]   = useState('')
 
   useEffect(() => { fetchAll() }, [fetchAll])
 
@@ -122,17 +123,25 @@ export default function CobrancasPage() {
     [lotesPeritos, peritos, cobrancas],
   )
 
+  const peritoNamesFiltrados = useMemo(() => {
+    if (!fRegiao) return peritoNames
+    const nomes = new Set(cobrancas.filter((c) => c.regiao === fRegiao).map((c) => c.perito))
+    return peritoNames.filter((n) => nomes.has(n))
+  }, [peritoNames, cobrancas, fRegiao])
+
   const filtered = useMemo(() => {
     return cobrancas.filter((c) => {
-      if (fPerito   && c.perito !== fPerito) return false
       if (fRegiao   && c.regiao !== fRegiao) return false
-      if (fMes      && (!c.mesRef || !c.mesRef.startsWith(fMes))) return false
+      if (fPerito   && c.perito !== fPerito) return false
+      const mes = c.mesRef?.substring(0, 7) ?? ''
+      if (fMesInicio && mes < fMesInicio) return false
+      if (fMesFim    && mes > fMesFim)    return false
       if (fTipo     && c.tipo !== fTipo) return false
       if (fRecebido === 'sim' && !c.recebido) return false
       if (fRecebido === 'nao' && c.recebido)  return false
       return true
     })
-  }, [cobrancas, fPerito, fRegiao, fMes, fTipo, fRecebido])
+  }, [cobrancas, fRegiao, fPerito, fMesInicio, fMesFim, fTipo, fRecebido])
 
   // KPIs (baseados em TODOS, não no filtrado)
   const totalCobrado  = cobrancas.reduce((s, c) => s + c.valor, 0)
@@ -298,24 +307,32 @@ export default function CobrancasPage() {
 
       {/* Filters */}
       <div className="bg-white border border-[#D4DAD6] rounded-lg px-4 py-3">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-          <Select value={fPerito} onChange={(e) => setFPerito(e.target.value)}>
-            <option value="">Todos os peritos</option>
-            {peritoNames.map((n) => <option key={n} value={n}>{n}</option>)}
-          </Select>
-
-          <Select value={fRegiao} onChange={(e) => setFRegiao(e.target.value)}>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+          <Select value={fRegiao} onChange={(e) => { setFRegiao(e.target.value); setFPerito('') }}>
             <option value="">Todas as regiões</option>
             {uniqueRegioes.map((r) => <option key={r} value={r}>{r}</option>)}
           </Select>
 
-          <input
-            type="month"
-            value={fMes}
-            onChange={(e) => setFMes(e.target.value)}
-            className="bg-white border border-[#D4DAD6] rounded-md text-[#1A1A1A] text-sm h-8 px-3 focus:outline-none focus:border-[#1B4D2E] focus:ring-1 focus:ring-[#1B4D2E]/30 w-full"
-            placeholder="Mês"
-          />
+          <Select value={fPerito} onChange={(e) => setFPerito(e.target.value)}>
+            <option value="">{fRegiao ? 'Todos os peritos' : 'Todos os peritos'}</option>
+            {peritoNamesFiltrados.map((n) => <option key={n} value={n}>{n}</option>)}
+          </Select>
+
+          <div className="flex items-center gap-1">
+            <input
+              type="month"
+              value={fMesInicio}
+              onChange={(e) => setFMesInicio(e.target.value)}
+              className="bg-white border border-[#D4DAD6] rounded-md text-[#1A1A1A] text-sm h-8 px-2 focus:outline-none focus:border-[#1B4D2E] focus:ring-1 focus:ring-[#1B4D2E]/30 w-full min-w-0"
+            />
+            <span className="text-[#5A6A5E] text-xs shrink-0">→</span>
+            <input
+              type="month"
+              value={fMesFim}
+              onChange={(e) => setFMesFim(e.target.value)}
+              className="bg-white border border-[#D4DAD6] rounded-md text-[#1A1A1A] text-sm h-8 px-2 focus:outline-none focus:border-[#1B4D2E] focus:ring-1 focus:ring-[#1B4D2E]/30 w-full min-w-0"
+            />
+          </div>
 
           <Select value={fTipo} onChange={(e) => setFTipo(e.target.value)}>
             <option value="">Todos os tipos</option>
@@ -328,7 +345,6 @@ export default function CobrancasPage() {
             <option value="sim">Recebido</option>
             <option value="nao">Pendente</option>
           </Select>
-
         </div>
       </div>
 
