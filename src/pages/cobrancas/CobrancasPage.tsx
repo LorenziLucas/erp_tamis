@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Chart as ChartJS,
   CategoryScale, LinearScale, BarElement, LineElement, PointElement, Tooltip, Legend,
@@ -8,6 +8,7 @@ import { Bar } from 'react-chartjs-2'
 import {
   DollarSign, TrendingUp, Clock, FileWarning,
   PlusCircle, Pencil, Trash2, FileText,
+  Search, ChevronUp, ChevronDown, ChevronsUpDown, X,
 } from 'lucide-react'
 
 import { useCobrancasStore, selectPeritoNames } from '../../store/cobrancasStore'
@@ -26,6 +27,19 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointEleme
 
 const DARK = { grid: '#D4DAD6', text: '#5A6A5E', font: "'Segoe UI', Arial, sans-serif" }
 const C = { green: '#2D7A47', blue: '#2563EB', orange: '#d29922', purple: '#9B5CF6' }
+
+type SortKey = keyof Cobranca
+type SortDir = 'asc' | 'desc'
+
+function cobrancaSearchable(c: Cobranca): string {
+  return [
+    c.perito, c.cpfPerito ?? '', c.regiao,
+    c.mesRef ?? '', c.dataEnvio ?? '',
+    String(c.valor), c.tipo,
+    c.recebido ? 'recebido sim' : 'pendente não',
+    c.notaFiscal,
+  ].join(' ').toLowerCase()
+}
 
 const MONTHS_SHORT = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez']
 function abrevMes(yyyymm: string) {
@@ -121,6 +135,14 @@ export default function CobrancasPage() {
   const [fMesFim,     setFMesFim]     = useState('')
   const [fTipo,       setFTipo]       = useState('')
   const [fRecebido,   setFRecebido]   = useState('')
+  const [query,       setQuery]       = useState('')
+  const [sortKey,     setSortKey]     = useState<SortKey>('mesRef')
+  const [sortDir,     setSortDir]     = useState<SortDir>('desc')
+
+  const handleSort = useCallback((key: SortKey) => {
+    if (sortKey === key) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+    else { setSortKey(key); setSortDir('asc') }
+  }, [sortKey])
 
   useEffect(() => { fetchAll() }, [fetchAll])
 
@@ -136,6 +158,7 @@ export default function CobrancasPage() {
   }, [peritoNames, cobrancas, fRegiao])
 
   const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
     return cobrancas.filter((c) => {
       if (fRegiao   && c.regiao !== fRegiao) return false
       if (fPerito   && c.perito !== fPerito) return false
@@ -145,9 +168,22 @@ export default function CobrancasPage() {
       if (fTipo     && c.tipo !== fTipo) return false
       if (fRecebido === 'sim' && !c.recebido) return false
       if (fRecebido === 'nao' && c.recebido)  return false
+      if (q && !cobrancaSearchable(c).includes(q)) return false
       return true
     })
-  }, [cobrancas, fRegiao, fPerito, fMesInicio, fMesFim, fTipo, fRecebido])
+  }, [cobrancas, fRegiao, fPerito, fMesInicio, fMesFim, fTipo, fRecebido, query])
+
+  const sorted = useMemo(() => {
+    return [...filtered].sort((a, b) => {
+      const va = a[sortKey]
+      const vb = b[sortKey]
+      let cmp = 0
+      if (typeof va === 'boolean') cmp = Number(va) - Number(vb)
+      else if (typeof va === 'number') cmp = va - (vb as number)
+      else cmp = (va ?? '').toString().localeCompare((vb ?? '').toString())
+      return sortDir === 'asc' ? cmp : -cmp
+    })
+  }, [filtered, sortKey, sortDir])
 
   // KPIs (baseados no filtrado)
   const totalCobrado  = filtered.reduce((s, c) => s + c.valor, 0)
@@ -389,11 +425,27 @@ export default function CobrancasPage() {
         </div>
       )}
 
+      {/* Search */}
+      <div className="relative">
+        <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9AA4A0] pointer-events-none" />
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Buscar por perito, CPF, região, tipo…"
+          className="w-full pl-8 pr-8 h-9 bg-white border border-[#D4DAD6] rounded-lg text-sm text-[#1A1A1A] placeholder-[#9AA4A0] focus:outline-none focus:border-[#1B4D2E] focus:ring-1 focus:ring-[#1B4D2E]/30 transition-colors"
+        />
+        {query && (
+          <button onClick={() => setQuery('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#9AA4A0] hover:text-[#5A6A5E] transition-colors">
+            <X size={13} />
+          </button>
+        )}
+      </div>
+
       {/* Table */}
       <div className="bg-white border border-[#D4DAD6] rounded-lg overflow-hidden">
         {loading ? (
           <div className="py-16 text-center text-sm text-[#5A6A5E]">Carregando…</div>
-        ) : filtered.length === 0 ? (
+        ) : sorted.length === 0 ? (
           <div className="py-16 text-center">
             <p className="text-sm font-medium text-[#1A1A1A]">Nenhuma cobrança encontrada</p>
             <p className="text-xs text-[#5A6A5E] mt-1">
@@ -409,16 +461,34 @@ export default function CobrancasPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[#D4DAD6] bg-[#F4F6F4]">
-                  {['Perito', 'CPF', 'Região', 'Mês Ref.', 'Envio', 'Valor', 'Tipo', 'Recebido', 'NF', 'PDF', ''].map((h) => (
-                    <th key={h} className="px-4 py-2.5 text-left text-xs font-semibold text-[#5A6A5E] uppercase tracking-wider whitespace-nowrap">
-                      {h}
+                {(() => {
+                  const SortIcon = ({ k }: { k: SortKey }) =>
+                    sortKey !== k ? <ChevronsUpDown size={11} className="opacity-30" />
+                    : sortDir === 'asc' ? <ChevronUp size={11} /> : <ChevronDown size={11} />
+                  const Th = ({ k, children }: { k: SortKey; children: React.ReactNode }) => (
+                    <th onClick={() => handleSort(k)} className="px-4 py-2.5 text-left text-xs font-semibold text-[#5A6A5E] uppercase tracking-wider whitespace-nowrap cursor-pointer hover:text-[#1A1A1A] select-none bg-[#F4F6F4]">
+                      <span className="inline-flex items-center gap-1">{children}<SortIcon k={k} /></span>
                     </th>
-                  ))}
-                </tr>
+                  )
+                  return (
+                    <tr className="border-b border-[#D4DAD6]">
+                      <Th k="perito">Perito</Th>
+                      <Th k="cpfPerito">CPF</Th>
+                      <Th k="regiao">Região</Th>
+                      <Th k="mesRef">Mês Ref.</Th>
+                      <Th k="dataEnvio">Envio</Th>
+                      <Th k="valor">Valor</Th>
+                      <Th k="tipo">Tipo</Th>
+                      <Th k="recebido">Recebido</Th>
+                      <Th k="notaFiscal">NF</Th>
+                      <th className="px-4 py-2.5 bg-[#F4F6F4]">PDF</th>
+                      <th className="px-4 py-2.5 bg-[#F4F6F4]"></th>
+                    </tr>
+                  )
+                })()}
               </thead>
               <tbody className="divide-y divide-[#F0F2F0]">
-                {filtered.map((c) => (
+                {sorted.map((c) => (
                   <tr key={c.id} className="hover:bg-[#F4F6F4]/60 transition-colors">
                     <td className="px-4 py-3 font-medium text-[#1A1A1A] whitespace-nowrap">{c.perito}</td>
                     <td className="px-4 py-3 text-[#5A6A5E] font-mono text-xs">{c.cpfPerito ?? '—'}</td>
@@ -496,11 +566,11 @@ export default function CobrancasPage() {
           </div>
         )}
 
-        {filtered.length > 0 && (
+        {sorted.length > 0 && (
           <div className="px-4 py-2 border-t border-[#D4DAD6] bg-[#F4F6F4] text-xs text-[#5A6A5E]">
-            {filtered.length} cobrança{filtered.length !== 1 ? 's' : ''}
-            {filtered.length !== cobrancas.length && ` (de ${cobrancas.length} no total)`}
-            {' · '}Total filtrado: <strong className="text-[#1B4D2E]">{formatCurrency(filtered.reduce((s, c) => s + c.valor, 0))}</strong>
+            {sorted.length} cobrança{sorted.length !== 1 ? 's' : ''}
+            {sorted.length !== cobrancas.length && ` (de ${cobrancas.length} no total)`}
+            {' · '}Total filtrado: <strong className="text-[#1B4D2E]">{formatCurrency(sorted.reduce((s, c) => s + c.valor, 0))}</strong>
           </div>
         )}
       </div>
