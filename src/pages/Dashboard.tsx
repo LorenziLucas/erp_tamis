@@ -687,7 +687,7 @@ export default function Dashboard() {
 
   const tipoData = {
     labels: Object.keys(byTipo),
-    datasets: [{ data: Object.values(byTipo), backgroundColor: [`${C.blue}cc`, `${C.orange}cc`, `${C.green}cc`], borderColor: [C.blue, C.orange, C.green], borderWidth: 1.5, hoverOffset: 6 }],
+    datasets: [{ data: Object.values(byTipo), backgroundColor: [C.purple, C.orange, C.teal, C.red].map((c) => `${c}cc`), borderColor: [C.purple, C.orange, C.teal, C.red], borderWidth: 1.5, hoverOffset: 6 }],
   }
   const regiaoData = {
     labels: Object.keys(byRegiao),
