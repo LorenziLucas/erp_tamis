@@ -296,7 +296,8 @@ export default function CobrancasPage() {
       {filtered.length > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <ChartCard title="Evolução Mensal" subtitle="Comissão vs Lote" className="min-h-[260px]">
-            <Bar data={monthlyChartData} options={barOptions} />
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+            <Bar data={monthlyChartData as any} options={barOptions} />
           </ChartCard>
           <ChartCard title="Ranking de Peritos" subtitle="Por valor cobrado" className="min-h-[260px]">
             <Bar data={rankingChartData} options={rankingOptions} />
