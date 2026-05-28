@@ -27,6 +27,12 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointEleme
 const DARK = { grid: '#D4DAD6', text: '#5A6A5E', font: "'Segoe UI', Arial, sans-serif" }
 const C = { green: '#2D7A47', blue: '#2563EB', orange: '#d29922', purple: '#9B5CF6' }
 
+const MONTHS_SHORT = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez']
+function abrevMes(yyyymm: string) {
+  const [y, m] = yyyymm.split('-')
+  return `${MONTHS_SHORT[Number(m) - 1]}/${y.slice(2)}`
+}
+
 const CHART_BASE = {
   responsive: true,
   maintainAspectRatio: false,
@@ -239,7 +245,8 @@ export default function CobrancasPage() {
   }
 
 
-  const uniqueRegioes = [...new Set(cobrancas.map((c) => c.regiao).filter(Boolean))].sort()
+  const uniqueRegioes    = [...new Set(cobrancas.map((c) => c.regiao).filter(Boolean))].sort()
+  const availableMonths  = [...new Set(cobrancas.map((c) => c.mesRef?.substring(0, 7)).filter(Boolean) as string[])].sort()
 
   async function handleSubmit(data: CobrancaFormData) {
     setSaving(true)
@@ -307,7 +314,7 @@ export default function CobrancasPage() {
       {/* Filters */}
       <div className="bg-white border border-[#D4DAD6] rounded-lg px-4 py-3">
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 items-end">
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-1">
             <Select value={fRegiao} onChange={(e) => { setFRegiao(e.target.value); setFPerito('') }}>
               <option value="">Todas as regiões</option>
               {uniqueRegioes.map((r) => <option key={r} value={r}>{r}</option>)}
@@ -325,23 +332,23 @@ export default function CobrancasPage() {
             <p className="text-[10px] font-semibold text-[#5A6A5E] uppercase tracking-wide mb-1">Período</p>
             <div className="flex items-center gap-1.5">
               <span className="text-[10px] font-semibold text-[#5A6A5E] uppercase shrink-0">De</span>
-              <input
-                type="month"
-                value={fMesInicio}
-                onChange={(e) => setFMesInicio(e.target.value)}
-                className="bg-white border border-[#D4DAD6] rounded-md text-[#1A1A1A] text-sm h-8 px-2 focus:outline-none focus:border-[#1B4D2E] focus:ring-1 focus:ring-[#1B4D2E]/30 w-full min-w-0"
-              />
+              <div className="flex-1 min-w-0">
+                <Select value={fMesInicio} onChange={(e) => setFMesInicio(e.target.value)}>
+                  <option value="">—</option>
+                  {availableMonths.map((m) => <option key={m} value={m}>{abrevMes(m)}</option>)}
+                </Select>
+              </div>
               <span className="text-[10px] font-semibold text-[#5A6A5E] uppercase shrink-0">Até</span>
-              <input
-                type="month"
-                value={fMesFim}
-                onChange={(e) => setFMesFim(e.target.value)}
-                className="bg-white border border-[#D4DAD6] rounded-md text-[#1A1A1A] text-sm h-8 px-2 focus:outline-none focus:border-[#1B4D2E] focus:ring-1 focus:ring-[#1B4D2E]/30 w-full min-w-0"
-              />
+              <div className="flex-1 min-w-0">
+                <Select value={fMesFim} onChange={(e) => setFMesFim(e.target.value)}>
+                  <option value="">—</option>
+                  {availableMonths.map((m) => <option key={m} value={m}>{abrevMes(m)}</option>)}
+                </Select>
+              </div>
             </div>
           </div>
 
-          <div className="lg:col-span-1 flex gap-2">
+          <div className="lg:col-span-2 flex gap-2">
             <div className="flex-1 min-w-0">
               <Select value={fTipo} onChange={(e) => setFTipo(e.target.value)}>
                 <option value="">Tipo</option>
@@ -363,8 +370,8 @@ export default function CobrancasPage() {
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard label="Total Cobrado"        value={formatCurrency(totalCobrado)}  color="blue"   icon={DollarSign} />
-        <KpiCard label="Total Recebido"       value={formatCurrency(totalRecebido)} color="green"  icon={TrendingUp}  sub={`${cobrancas.filter((c) => c.recebido).length} cobranças`} />
-        <KpiCard label="Total Pendente"       value={formatCurrency(totalPendente)} color="red" icon={Clock}       sub={`${cobrancas.filter((c) => !c.recebido).length} cobranças`} />
+        <KpiCard label="Total Recebido"       value={formatCurrency(totalRecebido)} color="green"  icon={TrendingUp}  sub={`${qtdRecebido} cobranças`} />
+        <KpiCard label="Total Pendente"       value={formatCurrency(totalPendente)} color="red"    icon={Clock}       sub={`${qtdNaoRecebido} cobranças`} />
         <KpiCard label="Taxa de Recebimento"  value={`${taxaRecebimento}%`}         color="orange" icon={TrendingUp}  sub={`${qtdRecebido} recebidas · ${qtdNaoRecebido} pendentes`} />
       </div>
 
