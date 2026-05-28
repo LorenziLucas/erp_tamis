@@ -114,7 +114,6 @@ export default function CobrancasPage() {
   const [fMes,      setFMes]      = useState('')
   const [fTipo,     setFTipo]     = useState('')
   const [fRecebido, setFRecebido] = useState('')
-  const [fNF,       setFNF]       = useState('')
 
   useEffect(() => { fetchAll() }, [fetchAll])
 
@@ -131,10 +130,9 @@ export default function CobrancasPage() {
       if (fTipo     && c.tipo !== fTipo) return false
       if (fRecebido === 'sim' && !c.recebido) return false
       if (fRecebido === 'nao' && c.recebido)  return false
-      if (fNF && c.notaFiscal !== fNF) return false
       return true
     })
-  }, [cobrancas, fPerito, fRegiao, fMes, fTipo, fRecebido, fNF])
+  }, [cobrancas, fPerito, fRegiao, fMes, fTipo, fRecebido])
 
   // KPIs (baseados em TODOS, não no filtrado)
   const totalCobrado  = cobrancas.reduce((s, c) => s + c.valor, 0)
@@ -331,11 +329,6 @@ export default function CobrancasPage() {
             <option value="nao">Pendente</option>
           </Select>
 
-          <Select value={fNF} onChange={(e) => setFNF(e.target.value)}>
-            <option value="">Nota fiscal</option>
-            <option value="Emitida">Emitida</option>
-            <option value="Não Emitida">Não Emitida</option>
-          </Select>
         </div>
       </div>
 
