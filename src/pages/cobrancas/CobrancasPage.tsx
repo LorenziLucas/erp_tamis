@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Chart as ChartJS,
   CategoryScale, LinearScale, BarElement, LineElement, PointElement, Tooltip, Legend,
@@ -8,7 +8,7 @@ import { Bar } from 'react-chartjs-2'
 import {
   DollarSign, TrendingUp, Clock, FileWarning,
   PlusCircle, Pencil, Trash2, FileText,
-  Search, ChevronUp, ChevronDown, ChevronsUpDown, X,
+  Search, ChevronUp, ChevronDown, ChevronRight, ChevronsUpDown, X,
 } from 'lucide-react'
 
 import { useCobrancasStore, selectPeritoNames } from '../../store/cobrancasStore'
@@ -22,6 +22,23 @@ import { useToast } from '../../components/ui/Toast'
 import { cn, formatCurrency, formatDate, formatMonthYear } from '../../lib/utils'
 import { CobrancaForm, type CobrancaFormData } from './CobrancaForm'
 import type { Cobranca } from '../../types/cobrancas'
+
+type GroupedCobranca =
+  | { grouped: false; cobranca: Cobranca }
+  | {
+      grouped: true
+      key: string
+      perito: string
+      regiao: string
+      mesRef: string | null
+      recebido: boolean
+      valorTotal: number
+      comissao: Cobranca
+      lote: Cobranca
+      dataEnvio: string | null
+      notaFiscal: string
+      linkPdf: string | null
+    }
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, Tooltip, Legend)
 
@@ -111,6 +128,53 @@ function buildRegiaoData(cobrancas: Cobranca[]) {
   }
 }
 
+function groupCobrancas(cobrancas: Cobranca[]): GroupedCobranca[] {
+  const used = new Set<string>()
+  const result: GroupedCobranca[] = []
+
+  for (const c of cobrancas) {
+    if (used.has(c.id)) continue
+
+    const pair = cobrancas.find(
+      (o) =>
+        !used.has(o.id) &&
+        o.id !== c.id &&
+        o.perito === c.perito &&
+        o.regiao === c.regiao &&
+        o.mesRef === c.mesRef &&
+        o.recebido === c.recebido &&
+        ((c.tipo === 'Comissão' && o.tipo === 'Lote') ||
+          (c.tipo === 'Lote' && o.tipo === 'Comissão')),
+    )
+
+    if (pair) {
+      used.add(c.id)
+      used.add(pair.id)
+      const comissao = c.tipo === 'Comissão' ? c : pair
+      const lote     = c.tipo === 'Lote'     ? c : pair
+      result.push({
+        grouped: true,
+        key: `${c.id}-${pair.id}`,
+        perito: c.perito,
+        regiao: c.regiao,
+        mesRef: c.mesRef,
+        recebido: c.recebido,
+        valorTotal: c.valor + pair.valor,
+        comissao,
+        lote,
+        dataEnvio:   comissao.dataEnvio ?? lote.dataEnvio ?? null,
+        notaFiscal:  comissao.notaFiscal,
+        linkPdf:     comissao.linkPdf ?? lote.linkPdf ?? null,
+      })
+    } else {
+      used.add(c.id)
+      result.push({ grouped: false, cobranca: c })
+    }
+  }
+
+  return result
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function CobrancasPage() {
@@ -184,6 +248,18 @@ export default function CobrancasPage() {
       return sortDir === 'asc' ? cmp : -cmp
     })
   }, [filtered, sortKey, sortDir])
+
+  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set())
+
+  const groupedRows = useMemo(() => groupCobrancas(sorted), [sorted])
+
+  function toggleExpand(key: string) {
+    setExpandedKeys((prev) => {
+      const next = new Set(prev)
+      next.has(key) ? next.delete(key) : next.add(key)
+      return next
+    })
+  }
 
   // KPIs (baseados no filtrado)
   const totalCobrado  = filtered.reduce((s, c) => s + c.valor, 0)
@@ -487,78 +563,150 @@ export default function CobrancasPage() {
                 })()}
               </thead>
               <tbody className="divide-y divide-[#F0F2F0]">
-                {sorted.map((c) => (
-                  <tr key={c.id} className="hover:bg-[#F4F6F4]/60 transition-colors">
-                    <td className="px-4 py-3 font-medium text-[#1A1A1A] whitespace-nowrap">{c.perito}</td>
-                    <td className="px-4 py-3 text-[#5A6A5E] whitespace-nowrap">{c.regiao || '—'}</td>
-                    <td className="px-4 py-3 text-[#5A6A5E] whitespace-nowrap">{mesRefLabel(c.mesRef)}</td>
-                    <td className="px-4 py-3 text-[#5A6A5E] whitespace-nowrap">{formatDate(c.dataEnvio ?? '')}</td>
-                    <td className="px-4 py-3 font-semibold text-[#1B4D2E] whitespace-nowrap">{formatCurrency(c.valor)}</td>
-                    <td className="px-4 py-3">
-                      <span className={cn(
-                        'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium',
-                        c.tipo === 'Comissão'
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          : 'bg-blue-50 text-blue-700 border border-blue-200',
-                      )}>
-                        {c.tipo}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={cn(
-                        'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium',
-                        c.recebido
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          : 'bg-amber-50 text-amber-700 border border-amber-200',
-                      )}>
-                        {c.recebido ? 'Sim' : 'Não'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={cn(
-                        'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium',
-                        c.notaFiscal === 'Emitida'
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          : 'bg-red-50 text-red-700 border border-red-200',
-                      )}>
-                        {c.notaFiscal === 'Emitida' ? 'Emitida' : 'Pendente'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      {c.linkPdf ? (
-                        <a
-                          href={c.linkPdf}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title="Abrir PDF"
-                          className="text-[#1B4D2E] hover:text-[#2D7A47] transition-colors"
-                        >
-                          <FileText size={15} />
-                        </a>
-                      ) : (
-                        <span className="text-[#D4DAD6]"><FileText size={15} /></span>
+                {groupedRows.map((row) => {
+                  if (!row.grouped) {
+                    const c = row.cobranca
+                    return (
+                      <tr key={c.id} className="hover:bg-[#F4F6F4]/60 transition-colors">
+                        <td className="px-4 py-3 font-medium text-[#1A1A1A] whitespace-nowrap">{c.perito}</td>
+                        <td className="px-4 py-3 text-[#5A6A5E] whitespace-nowrap">{c.regiao || '—'}</td>
+                        <td className="px-4 py-3 text-[#5A6A5E] whitespace-nowrap">{mesRefLabel(c.mesRef)}</td>
+                        <td className="px-4 py-3 text-[#5A6A5E] whitespace-nowrap">{formatDate(c.dataEnvio ?? '')}</td>
+                        <td className="px-4 py-3 font-semibold text-[#1B4D2E] whitespace-nowrap">{formatCurrency(c.valor)}</td>
+                        <td className="px-4 py-3">
+                          <span className={cn('inline-flex items-center px-2 py-0.5 rounded text-xs font-medium',
+                            c.tipo === 'Comissão' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              : 'bg-blue-50 text-blue-700 border border-blue-200')}>
+                            {c.tipo}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={cn('inline-flex items-center px-2 py-0.5 rounded text-xs font-medium',
+                            c.recebido ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              : 'bg-amber-50 text-amber-700 border border-amber-200')}>
+                            {c.recebido ? 'Sim' : 'Não'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={cn('inline-flex items-center px-2 py-0.5 rounded text-xs font-medium',
+                            c.notaFiscal === 'Emitida' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              : 'bg-red-50 text-red-700 border border-red-200')}>
+                            {c.notaFiscal === 'Emitida' ? 'Emitida' : 'Pendente'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          {c.linkPdf ? (
+                            <a href={c.linkPdf} target="_blank" rel="noopener noreferrer" title="Abrir PDF" className="text-[#1B4D2E] hover:text-[#2D7A47] transition-colors"><FileText size={15} /></a>
+                          ) : (
+                            <span className="text-[#D4DAD6]"><FileText size={15} /></span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-1">
+                            <button onClick={() => openEdit(c)} className="p-1 rounded text-[#5A6A5E] hover:text-[#1B4D2E] hover:bg-[#1B4D2E]/5 transition-colors" title="Editar"><Pencil size={13} /></button>
+                            <button onClick={() => setDeleteId(c.id)} className="p-1 rounded text-[#5A6A5E] hover:text-red-600 hover:bg-red-50 transition-colors" title="Excluir"><Trash2 size={13} /></button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  }
+
+                  // LINHA AGRUPADA
+                  const isOpen = expandedKeys.has(row.key)
+                  return (
+                    <React.Fragment key={row.key}>
+                      <tr onClick={() => toggleExpand(row.key)} className="hover:bg-[#F4F6F4]/60 transition-colors cursor-pointer">
+                        <td className="px-4 py-3 font-medium text-[#1A1A1A] whitespace-nowrap">{row.perito}</td>
+                        <td className="px-4 py-3 text-[#5A6A5E] whitespace-nowrap">{row.regiao || '—'}</td>
+                        <td className="px-4 py-3 text-[#5A6A5E] whitespace-nowrap">{mesRefLabel(row.mesRef)}</td>
+                        <td className="px-4 py-3 text-[#5A6A5E] whitespace-nowrap">{formatDate(row.dataEnvio ?? '')}</td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <span className="font-semibold text-[#1B4D2E]">{formatCurrency(row.valorTotal)}</span>
+                          <span className="block text-[11px] text-[#5A6A5E] font-normal">2 lançamentos</span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 mr-1">Comissão</span>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">Lote</span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={cn('inline-flex items-center px-2 py-0.5 rounded text-xs font-medium',
+                            row.recebido ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              : 'bg-amber-50 text-amber-700 border border-amber-200')}>
+                            {row.recebido ? 'Sim' : 'Não'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={cn('inline-flex items-center px-2 py-0.5 rounded text-xs font-medium',
+                            row.notaFiscal === 'Emitida' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              : 'bg-red-50 text-red-700 border border-red-200')}>
+                            {row.notaFiscal === 'Emitida' ? 'Emitida' : 'Pendente'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          {row.linkPdf ? (
+                            <a href={row.linkPdf} target="_blank" rel="noopener noreferrer" title="Abrir PDF" onClick={(e) => e.stopPropagation()} className="text-[#1B4D2E] hover:text-[#2D7A47] transition-colors"><FileText size={15} /></a>
+                          ) : (
+                            <span className="text-[#D4DAD6]"><FileText size={15} /></span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <ChevronRight size={14} className={cn('text-[#5A6A5E] transition-transform duration-200', isOpen && 'rotate-90')} />
+                        </td>
+                      </tr>
+
+                      {isOpen && (
+                        <tr className="bg-[#F8FAF8]">
+                          <td colSpan={10} className="px-6 py-3">
+                            <div className="ml-4 pl-4 border-l-2 border-[#D4DAD6]">
+                              <div className="flex items-center gap-6 mb-3 flex-wrap">
+                                <div>
+                                  <p className="text-[10px] font-semibold text-[#5A6A5E] uppercase tracking-wide">Envio</p>
+                                  <p className="text-sm font-medium text-[#1A1A1A] mt-0.5">{formatDate(row.dataEnvio ?? '')}</p>
+                                </div>
+                                <div>
+                                  <p className="text-[10px] font-semibold text-[#5A6A5E] uppercase tracking-wide">Nota fiscal</p>
+                                  <div className="mt-1">
+                                    <span className={cn('inline-flex items-center px-2 py-0.5 rounded text-xs font-medium',
+                                      row.notaFiscal === 'Emitida' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                        : 'bg-red-50 text-red-700 border border-red-200')}>
+                                      {row.notaFiscal === 'Emitida' ? 'Emitida' : 'Pendente'}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div>
+                                  <p className="text-[10px] font-semibold text-[#5A6A5E] uppercase tracking-wide">PDF</p>
+                                  <div className="mt-1">
+                                    {row.linkPdf ? (
+                                      <a href={row.linkPdf} target="_blank" rel="noopener noreferrer" className="text-[#1B4D2E] hover:text-[#2D7A47] transition-colors"><FileText size={15} /></a>
+                                    ) : (
+                                      <span className="text-[#D4DAD6]"><FileText size={15} /></span>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="ml-auto flex items-end gap-1">
+                                  <button onClick={(e) => { e.stopPropagation(); openEdit(row.comissao) }} className="p-1 rounded text-[#5A6A5E] hover:text-[#1B4D2E] hover:bg-[#1B4D2E]/5 transition-colors" title="Editar Comissão"><Pencil size={13} /></button>
+                                  <button onClick={(e) => { e.stopPropagation(); setDeleteId(row.comissao.id) }} className="p-1 rounded text-[#5A6A5E] hover:text-red-600 hover:bg-red-50 transition-colors" title="Excluir Comissão"><Trash2 size={13} /></button>
+                                </div>
+                              </div>
+                              <div className="border-t border-[#E8EDE8] pt-2">
+                                <div className="flex gap-6 text-sm">
+                                  <div className="flex items-center gap-2">
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">Comissão</span>
+                                    <span className="font-semibold text-[#1B4D2E]">{formatCurrency(row.comissao.valor)}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">Lote</span>
+                                    <span className="font-semibold text-[#1B4D2E]">{formatCurrency(row.lote.valor)}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
                       )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => openEdit(c)}
-                          className="p-1 rounded text-[#5A6A5E] hover:text-[#1B4D2E] hover:bg-[#1B4D2E]/5 transition-colors"
-                          title="Editar"
-                        >
-                          <Pencil size={13} />
-                        </button>
-                        <button
-                          onClick={() => setDeleteId(c.id)}
-                          className="p-1 rounded text-[#5A6A5E] hover:text-red-600 hover:bg-red-50 transition-colors"
-                          title="Excluir"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                    </React.Fragment>
+                  )
+                })}
               </tbody>
             </table>
           </div>
