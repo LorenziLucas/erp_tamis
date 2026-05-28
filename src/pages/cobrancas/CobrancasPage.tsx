@@ -316,7 +316,7 @@ export default function CobrancasPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 items-end">
           <div className="lg:col-span-1">
             <Select value={fRegiao} onChange={(e) => { setFRegiao(e.target.value); setFPerito('') }}>
-              <option value="">Todas as regiões</option>
+              <option value="">Regiões</option>
               {uniqueRegioes.map((r) => <option key={r} value={r}>{r}</option>)}
             </Select>
           </div>
