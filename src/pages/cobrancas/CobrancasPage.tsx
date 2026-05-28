@@ -63,12 +63,20 @@ function buildMonthlyData(cobrancas: Cobranca[]) {
   }
 }
 
-function buildPeritoRanking(cobrancas: Cobranca[]) {
-  const map: Record<string, number> = {}
-  for (const c of cobrancas) map[c.perito] = (map[c.perito] ?? 0) + c.valor
-  return Object.entries(map)
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, 10)
+function buildRegiaoData(cobrancas: Cobranca[]) {
+  const map: Record<string, { comissao: number; lote: number }> = {}
+  for (const c of cobrancas) {
+    const key = c.regiao || 'Sem Região'
+    if (!map[key]) map[key] = { comissao: 0, lote: 0 }
+    if (c.tipo === 'Comissão') map[key].comissao += c.valor
+    else                       map[key].lote     += c.valor
+  }
+  const sorted = Object.entries(map).sort(([a], [b]) => a.localeCompare(b))
+  return {
+    labels:   sorted.map(([k]) => k),
+    comissao: sorted.map(([, v]) => v.comissao),
+    lote:     sorted.map(([, v]) => v.lote),
+  }
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -129,7 +137,7 @@ export default function CobrancasPage() {
 
   // Chart data (baseado no filtrado)
   const monthly = useMemo(() => buildMonthlyData(filtered), [filtered])
-  const ranking = useMemo(() => buildPeritoRanking(filtered), [filtered])
+  const regiao  = useMemo(() => buildRegiaoData(filtered),  [filtered])
 
   const monthlyChartData = {
     labels: monthly.labels,
@@ -167,19 +175,38 @@ export default function CobrancasPage() {
     ],
   }
 
-  const rankingChartData = {
-    labels: ranking.map(([name]) => {
-      const parts = name.split(' ')
-      return parts.length >= 2 ? `${parts[0]} ${parts.at(-1)}` : name
-    }),
+  const regiaoChartData = {
+    labels: regiao.labels,
     datasets: [
       {
-        label: 'Valor Cobrado (R$)',
-        data: ranking.map(([, v]) => v),
-        backgroundColor: `${C.purple}99`,
-        borderColor: C.purple,
+        label: 'Comissão',
+        data: regiao.comissao,
+        backgroundColor: `${C.green}99`,
+        borderColor: C.green,
         borderWidth: 1,
         borderRadius: 4,
+        yAxisID: 'y',
+      },
+      {
+        label: 'Lote',
+        data: regiao.lote,
+        backgroundColor: `${C.blue}99`,
+        borderColor: C.blue,
+        borderWidth: 1,
+        borderRadius: 4,
+        yAxisID: 'y',
+      },
+      {
+        type: 'line' as const,
+        label: 'Total',
+        data: regiao.comissao.map((v, i) => v + regiao.lote[i]),
+        borderColor: C.orange,
+        backgroundColor: 'transparent',
+        borderWidth: 2,
+        pointRadius: 3,
+        pointBackgroundColor: C.orange,
+        tension: 0.3,
+        yAxisID: 'y2',
       },
     ],
   }
@@ -202,22 +229,6 @@ export default function CobrancasPage() {
     },
   }
 
-  const rankingOptions = {
-    indexAxis: 'y' as const,
-    ...CHART_BASE,
-    scales: {
-      x: { grid: { color: DARK.grid }, ticks: { color: DARK.text, callback: (v: number | string) => `R$${(Number(v)/1000).toFixed(0)}k` } },
-      y: { grid: { display: false }, ticks: { color: DARK.text, font: { size: 11 } } },
-    },
-    plugins: {
-      ...CHART_BASE.plugins,
-      tooltip: {
-        callbacks: {
-          label: (ctx: TooltipItem<'bar'>) => ` ${formatCurrency(ctx.parsed.x ?? 0)}`,
-        },
-      },
-    },
-  }
 
   const uniqueRegioes = [...new Set(cobrancas.map((c) => c.regiao).filter(Boolean))].sort()
 
@@ -299,8 +310,9 @@ export default function CobrancasPage() {
             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
             <Bar data={monthlyChartData as any} options={barOptions} />
           </ChartCard>
-          <ChartCard title="Ranking de Peritos" subtitle="Por valor cobrado" className="min-h-[260px]">
-            <Bar data={rankingChartData} options={rankingOptions} />
+          <ChartCard title="Evolução Mensal" subtitle="Faturamento vs Região" className="min-h-[260px]">
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+            <Bar data={regiaoChartData as any} options={barOptions} />
           </ChartCard>
         </div>
       )}
