@@ -298,28 +298,6 @@ export default function CobrancasPage() {
         </Button>
       </div>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard label="Total Cobrado"        value={formatCurrency(totalCobrado)}  color="blue"   icon={DollarSign} />
-        <KpiCard label="Total Recebido"       value={formatCurrency(totalRecebido)} color="green"  icon={TrendingUp}  sub={`${cobrancas.filter((c) => c.recebido).length} cobranças`} />
-        <KpiCard label="Total Pendente"       value={formatCurrency(totalPendente)} color="red" icon={Clock}       sub={`${cobrancas.filter((c) => !c.recebido).length} cobranças`} />
-        <KpiCard label="Taxa de Recebimento"  value={`${taxaRecebimento}%`}         color="orange" icon={TrendingUp}  sub={`${qtdRecebido} recebidas · ${qtdNaoRecebido} pendentes`} />
-      </div>
-
-      {/* Charts */}
-      {filtered.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <ChartCard title="Evolução Mensal" subtitle="Comissão vs Lote" className="min-h-[260px]">
-            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-            <Bar data={monthlyChartData as any} options={barOptions} />
-          </ChartCard>
-          <ChartCard title="Evolução Mensal" subtitle="Faturamento vs Região" className="min-h-[260px]">
-            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-            <Bar data={regiaoChartData as any} options={barOptions} />
-          </ChartCard>
-        </div>
-      )}
-
       {/* Filters */}
       <div className="bg-white border border-[#D4DAD6] rounded-lg px-4 py-3">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -360,6 +338,28 @@ export default function CobrancasPage() {
           </Select>
         </div>
       </div>
+
+      {/* KPIs */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <KpiCard label="Total Cobrado"        value={formatCurrency(totalCobrado)}  color="blue"   icon={DollarSign} />
+        <KpiCard label="Total Recebido"       value={formatCurrency(totalRecebido)} color="green"  icon={TrendingUp}  sub={`${cobrancas.filter((c) => c.recebido).length} cobranças`} />
+        <KpiCard label="Total Pendente"       value={formatCurrency(totalPendente)} color="red" icon={Clock}       sub={`${cobrancas.filter((c) => !c.recebido).length} cobranças`} />
+        <KpiCard label="Taxa de Recebimento"  value={`${taxaRecebimento}%`}         color="orange" icon={TrendingUp}  sub={`${qtdRecebido} recebidas · ${qtdNaoRecebido} pendentes`} />
+      </div>
+
+      {/* Charts */}
+      {filtered.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <ChartCard title="Evolução Mensal" subtitle="Comissão vs Lote" className="min-h-[260px]">
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+            <Bar data={monthlyChartData as any} options={barOptions} />
+          </ChartCard>
+          <ChartCard title="Evolução Mensal" subtitle="Faturamento vs Região" className="min-h-[260px]">
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+            <Bar data={regiaoChartData as any} options={barOptions} />
+          </ChartCard>
+        </div>
+      )}
 
       {/* Table */}
       <div className="bg-white border border-[#D4DAD6] rounded-lg overflow-hidden">
