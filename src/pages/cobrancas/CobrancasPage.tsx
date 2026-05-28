@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   Chart as ChartJS,
-  CategoryScale, LinearScale, BarElement, Tooltip, Legend,
+  CategoryScale, LinearScale, BarElement, LineElement, PointElement, Tooltip, Legend,
   type TooltipItem,
 } from 'chart.js'
 import { Bar } from 'react-chartjs-2'
@@ -22,7 +22,7 @@ import { cn, formatCurrency, formatDate, formatMonthYear } from '../../lib/utils
 import { CobrancaForm, type CobrancaFormData } from './CobrancaForm'
 import type { Cobranca } from '../../types/cobrancas'
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend)
+ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, Tooltip, Legend)
 
 const DARK = { grid: '#D4DAD6', text: '#5A6A5E', font: "'Segoe UI', Arial, sans-serif" }
 const C = { green: '#2D7A47', blue: '#2563EB', orange: '#d29922', purple: '#9B5CF6' }
@@ -141,6 +141,7 @@ export default function CobrancasPage() {
         borderColor: C.green,
         borderWidth: 1,
         borderRadius: 4,
+        yAxisID: 'y',
       },
       {
         label: 'Lote',
@@ -149,6 +150,19 @@ export default function CobrancasPage() {
         borderColor: C.blue,
         borderWidth: 1,
         borderRadius: 4,
+        yAxisID: 'y',
+      },
+      {
+        type: 'line' as const,
+        label: 'Total',
+        data: monthly.comissao.map((v, i) => v + monthly.lote[i]),
+        borderColor: C.orange,
+        backgroundColor: 'transparent',
+        borderWidth: 2,
+        pointRadius: 3,
+        pointBackgroundColor: C.orange,
+        tension: 0.3,
+        yAxisID: 'y2',
       },
     ],
   }
@@ -175,13 +189,14 @@ export default function CobrancasPage() {
     scales: {
       x: { grid: { color: DARK.grid }, ticks: { color: DARK.text } },
       y: { grid: { color: DARK.grid }, ticks: { color: DARK.text, callback: (v: number | string) => `R$${(Number(v)/1000).toFixed(0)}k` } },
+      y2: { position: 'right' as const, grid: { display: false }, ticks: { color: C.orange, callback: (v: number | string) => `R$${(Number(v)/1000).toFixed(0)}k` } },
     },
     plugins: {
       ...CHART_BASE.plugins,
       tooltip: {
         callbacks: {
           label: (ctx: TooltipItem<'bar'>) =>
-            ` ${ctx.dataset.label}: ${formatCurrency(ctx.parsed.y ?? 0)}`,
+            ` ${ctx.dataset.label}: ${formatCurrency((ctx.parsed as { y?: number }).y ?? 0)}`,
         },
       },
     },
