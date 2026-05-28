@@ -273,7 +273,7 @@ export default function CobrancasPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard label="Total Cobrado"        value={formatCurrency(totalCobrado)}  color="blue"   icon={DollarSign} />
         <KpiCard label="Total Recebido"       value={formatCurrency(totalRecebido)} color="green"  icon={TrendingUp}  sub={`${cobrancas.filter((c) => c.recebido).length} cobranças`} />
-        <KpiCard label="Total Pendente"       value={formatCurrency(totalPendente)} color="orange" icon={Clock}       sub={`${cobrancas.filter((c) => !c.recebido).length} cobranças`} />
+        <KpiCard label="Total Pendente"       value={formatCurrency(totalPendente)} color="red" icon={Clock}       sub={`${cobrancas.filter((c) => !c.recebido).length} cobranças`} />
         <KpiCard label="Taxa de Recebimento"  value={`${taxaRecebimento}%`}         color="orange" icon={TrendingUp}  sub={`${qtdRecebido} recebidas · ${qtdNaoRecebido} pendentes`} />
       </div>
 
