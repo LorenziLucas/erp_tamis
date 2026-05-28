@@ -121,6 +121,11 @@ export default function CobrancasPage() {
   const totalRecebido = cobrancas.filter((c) => c.recebido).reduce((s, c) => s + c.valor, 0)
   const totalPendente = cobrancas.filter((c) => !c.recebido).reduce((s, c) => s + c.valor, 0)
   const nfPendente    = cobrancas.filter((c) => c.notaFiscal === 'Não Emitida').length
+  const qtdRecebido    = cobrancas.filter((c) => c.recebido).length
+  const qtdNaoRecebido = cobrancas.filter((c) => !c.recebido).length
+  const taxaRecebimento = cobrancas.length > 0
+    ? Math.round((qtdRecebido / cobrancas.length) * 100)
+    : 0
 
   // Chart data (baseado no filtrado)
   const monthly = useMemo(() => buildMonthlyData(filtered), [filtered])
@@ -265,11 +270,12 @@ export default function CobrancasPage() {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard label="Total Cobrado"   value={formatCurrency(totalCobrado)}  color="blue"   icon={DollarSign} />
-        <KpiCard label="Total Recebido"  value={formatCurrency(totalRecebido)} color="green"  icon={TrendingUp}  sub={`${cobrancas.filter((c) => c.recebido).length} cobranças`} />
-        <KpiCard label="Total Pendente"  value={formatCurrency(totalPendente)} color="orange" icon={Clock}       sub={`${cobrancas.filter((c) => !c.recebido).length} cobranças`} />
-        <KpiCard label="NF Pendente"     value={nfPendente}                    color="red"    icon={FileWarning} sub="Nota fiscal não emitida" />
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <KpiCard label="Total Cobrado"        value={formatCurrency(totalCobrado)}  color="blue"   icon={DollarSign} />
+        <KpiCard label="Total Recebido"       value={formatCurrency(totalRecebido)} color="green"  icon={TrendingUp}  sub={`${cobrancas.filter((c) => c.recebido).length} cobranças`} />
+        <KpiCard label="Total Pendente"       value={formatCurrency(totalPendente)} color="orange" icon={Clock}       sub={`${cobrancas.filter((c) => !c.recebido).length} cobranças`} />
+        <KpiCard label="Taxa de Recebimento"  value={`${taxaRecebimento}%`}         color="orange" icon={TrendingUp}  sub={`${qtdRecebido} recebidas · ${qtdNaoRecebido} pendentes`} />
+        <KpiCard label="NF Pendente"          value={nfPendente}                    color="red"    icon={FileWarning} sub="Nota fiscal não emitida" />
       </div>
 
       {/* Charts */}
