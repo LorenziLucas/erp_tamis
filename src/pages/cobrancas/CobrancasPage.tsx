@@ -143,15 +143,14 @@ export default function CobrancasPage() {
     })
   }, [cobrancas, fRegiao, fPerito, fMesInicio, fMesFim, fTipo, fRecebido])
 
-  // KPIs (baseados em TODOS, não no filtrado)
-  const totalCobrado  = cobrancas.reduce((s, c) => s + c.valor, 0)
-  const totalRecebido = cobrancas.filter((c) => c.recebido).reduce((s, c) => s + c.valor, 0)
-  const totalPendente = cobrancas.filter((c) => !c.recebido).reduce((s, c) => s + c.valor, 0)
-  const nfPendente    = cobrancas.filter((c) => c.notaFiscal === 'Não Emitida').length
-  const qtdRecebido    = cobrancas.filter((c) => c.recebido).length
-  const qtdNaoRecebido = cobrancas.filter((c) => !c.recebido).length
-  const taxaRecebimento = cobrancas.length > 0
-    ? Math.round((qtdRecebido / cobrancas.length) * 100)
+  // KPIs (baseados no filtrado)
+  const totalCobrado  = filtered.reduce((s, c) => s + c.valor, 0)
+  const totalRecebido = filtered.filter((c) => c.recebido).reduce((s, c) => s + c.valor, 0)
+  const totalPendente = filtered.filter((c) => !c.recebido).reduce((s, c) => s + c.valor, 0)
+  const qtdRecebido    = filtered.filter((c) => c.recebido).length
+  const qtdNaoRecebido = filtered.filter((c) => !c.recebido).length
+  const taxaRecebimento = filtered.length > 0
+    ? Math.round((qtdRecebido / filtered.length) * 100)
     : 0
 
   // Chart data (baseado no filtrado)
@@ -307,44 +306,57 @@ export default function CobrancasPage() {
 
       {/* Filters */}
       <div className="bg-white border border-[#D4DAD6] rounded-lg px-4 py-3">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-          <Select value={fRegiao} onChange={(e) => { setFRegiao(e.target.value); setFPerito('') }}>
-            <option value="">Todas as regiões</option>
-            {uniqueRegioes.map((r) => <option key={r} value={r}>{r}</option>)}
-          </Select>
-
-          <Select value={fPerito} onChange={(e) => setFPerito(e.target.value)}>
-            <option value="">{fRegiao ? 'Todos os peritos' : 'Todos os peritos'}</option>
-            {peritoNamesFiltrados.map((n) => <option key={n} value={n}>{n}</option>)}
-          </Select>
-
-          <div className="flex items-center gap-1">
-            <input
-              type="month"
-              value={fMesInicio}
-              onChange={(e) => setFMesInicio(e.target.value)}
-              className="bg-white border border-[#D4DAD6] rounded-md text-[#1A1A1A] text-sm h-8 px-2 focus:outline-none focus:border-[#1B4D2E] focus:ring-1 focus:ring-[#1B4D2E]/30 w-full min-w-0"
-            />
-            <span className="text-[#5A6A5E] text-xs shrink-0">→</span>
-            <input
-              type="month"
-              value={fMesFim}
-              onChange={(e) => setFMesFim(e.target.value)}
-              className="bg-white border border-[#D4DAD6] rounded-md text-[#1A1A1A] text-sm h-8 px-2 focus:outline-none focus:border-[#1B4D2E] focus:ring-1 focus:ring-[#1B4D2E]/30 w-full min-w-0"
-            />
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 items-end">
+          <div className="lg:col-span-2">
+            <Select value={fRegiao} onChange={(e) => { setFRegiao(e.target.value); setFPerito('') }}>
+              <option value="">Todas as regiões</option>
+              {uniqueRegioes.map((r) => <option key={r} value={r}>{r}</option>)}
+            </Select>
           </div>
 
-          <Select value={fTipo} onChange={(e) => setFTipo(e.target.value)}>
-            <option value="">Todos os tipos</option>
-            <option value="Comissão">Comissão</option>
-            <option value="Lote">Lote</option>
-          </Select>
+          <div className="lg:col-span-2">
+            <Select value={fPerito} onChange={(e) => setFPerito(e.target.value)}>
+              <option value="">Todos os peritos</option>
+              {peritoNamesFiltrados.map((n) => <option key={n} value={n}>{n}</option>)}
+            </Select>
+          </div>
 
-          <Select value={fRecebido} onChange={(e) => setFRecebido(e.target.value)}>
-            <option value="">Recebimento</option>
-            <option value="sim">Recebido</option>
-            <option value="nao">Pendente</option>
-          </Select>
+          <div className="lg:col-span-3">
+            <p className="text-[10px] font-semibold text-[#5A6A5E] uppercase tracking-wide mb-1">Período</p>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] font-semibold text-[#5A6A5E] uppercase shrink-0">De</span>
+              <input
+                type="month"
+                value={fMesInicio}
+                onChange={(e) => setFMesInicio(e.target.value)}
+                className="bg-white border border-[#D4DAD6] rounded-md text-[#1A1A1A] text-sm h-8 px-2 focus:outline-none focus:border-[#1B4D2E] focus:ring-1 focus:ring-[#1B4D2E]/30 w-full min-w-0"
+              />
+              <span className="text-[10px] font-semibold text-[#5A6A5E] uppercase shrink-0">Até</span>
+              <input
+                type="month"
+                value={fMesFim}
+                onChange={(e) => setFMesFim(e.target.value)}
+                className="bg-white border border-[#D4DAD6] rounded-md text-[#1A1A1A] text-sm h-8 px-2 focus:outline-none focus:border-[#1B4D2E] focus:ring-1 focus:ring-[#1B4D2E]/30 w-full min-w-0"
+              />
+            </div>
+          </div>
+
+          <div className="lg:col-span-1 flex gap-2">
+            <div className="flex-1 min-w-0">
+              <Select value={fTipo} onChange={(e) => setFTipo(e.target.value)}>
+                <option value="">Tipo</option>
+                <option value="Comissão">Comissão</option>
+                <option value="Lote">Lote</option>
+              </Select>
+            </div>
+            <div className="flex-1 min-w-0">
+              <Select value={fRecebido} onChange={(e) => setFRecebido(e.target.value)}>
+                <option value="">Status</option>
+                <option value="sim">Recebido</option>
+                <option value="nao">Pendente</option>
+              </Select>
+            </div>
+          </div>
         </div>
       </div>
 
