@@ -49,7 +49,7 @@ const schema = z.object({
   trtId:         z.string().optional(),
   peritoId:      z.string().optional(),
   tipo:          z.enum(['PJE', 'MISTO', 'FÍSICO', 'CONF. ALVARÁ']),
-  formato:       z.enum(['NOVO', 'REVISÃO']),
+  formato:       z.enum(['NOVO', 'REVISÃO', 'MISTO']),
   envio:         z.string().min(1, 'Data de envio obrigatória'),
   entrega:       z.string(),
   mesRef:        z.string(),

@@ -23,7 +23,7 @@ export interface Lote {
   qtdAnalisada: number
   analise: '1ª' | '2ª'
   tipo: 'PJE' | 'MISTO' | 'FÍSICO' | 'CONF. ALVARÁ'
-  formato: 'NOVO' | 'REVISÃO'
+  formato: 'NOVO' | 'REVISÃO' | 'MISTO'
   envio: string        // ISO date string
   entrega: string      // ISO date string
   mesRef: string       // ISO date string
@@ -57,7 +57,7 @@ export const ANALISTA_OPTIONS = [
 ]
 
 export const TIPO_OPTIONS = ['PJE', 'MISTO', 'FÍSICO', 'CONF. ALVARÁ'] as const
-export const FORMATO_OPTIONS = ['NOVO', 'REVISÃO'] as const
+export const FORMATO_OPTIONS = ['NOVO', 'REVISÃO', 'MISTO'] as const
 export const ANALISE_OPTIONS = ['1ª', '2ª'] as const
 
 // Column header mapping from original spreadsheet
