@@ -693,9 +693,12 @@ export default function Dashboard() {
     labels: Object.keys(byRegiao),
     datasets: [{ data: Object.values(byRegiao), backgroundColor: [C.purple, C.teal, C.orange, C.red].map((c) => `${c}cc`), borderColor: [C.purple, C.teal, C.orange, C.red], borderWidth: 1.5, hoverOffset: 6 }],
   }
+  const FORMATO_COLOR: Record<string, string> = { NOVO: C.purple, 'REVISÃO': C.teal, MISTO: C.orange }
+  const formatoLabels = Object.keys(byFormato)
+  const formatoColors = formatoLabels.map((l) => FORMATO_COLOR[l] ?? C.red)
   const formatoData = {
-    labels: Object.keys(byFormato),
-    datasets: [{ data: Object.values(byFormato), backgroundColor: [`${C.teal}cc`, `${C.red}cc`], borderColor: [C.teal, C.red], borderWidth: 1.5, hoverOffset: 6 }],
+    labels: formatoLabels,
+    datasets: [{ data: Object.values(byFormato), backgroundColor: formatoColors.map((c) => `${c}cc`), borderColor: formatoColors, borderWidth: 1.5, hoverOffset: 6 }],
   }
 
   const histBins = buildHistData(primeirasAnalises)

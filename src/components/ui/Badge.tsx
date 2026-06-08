@@ -34,7 +34,8 @@ export function TipoBadge({ tipo }: { tipo: string }) {
 }
 
 export function FormatoBadge({ formato }: { formato: string }) {
-  return <Badge variant={formato === 'REVISÃO' ? 'teal' : 'purple'}>{formato}</Badge>
+  const map: Record<string, Variant> = { NOVO: 'purple', 'REVISÃO': 'teal', MISTO: 'orange' }
+  return <Badge variant={map[formato] ?? 'gray'}>{formato}</Badge>
 }
 
 export function PagoBadge({ pago }: { pago: boolean }) {
