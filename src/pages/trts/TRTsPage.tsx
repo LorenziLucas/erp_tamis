@@ -3,6 +3,7 @@ import { Plus, Pencil, Building2, Users, MapPin } from 'lucide-react'
 import { usePeritosStore } from '../../store/peritosStore'
 import { Button } from '../../components/ui/Button'
 import { Input, FormField } from '../../components/ui/Input'
+import { useToast } from '../../components/ui/Toast'
 import type { TRT } from '../../types'
 
 // ── Formulário de cadastro/edição ─────────────────────────────────────────────
@@ -91,6 +92,7 @@ function TRTsForm({ loading, initial, numerosExistentes, onSave, onCancel }: TRT
 
 export default function TRTsPage() {
   const { trts, peritos, loading, fetchTRTs, fetchPeritos, createTRT, updateTRT } = usePeritosStore()
+  const { success, error: toastError } = useToast()
 
   const [editando, setEditando] = useState<TRT | null | 'novo'>(null)
 
@@ -106,12 +108,18 @@ export default function TRTsPage() {
   const numerosExistentes = trts.map((t) => t.numero)
 
   async function handleSave(numero: number, cidadeSede: string) {
-    if (editando === 'novo') {
-      await createTRT(numero, cidadeSede)
-    } else if (editando) {
-      await updateTRT(editando.id, numero, cidadeSede)
+    try {
+      if (editando === 'novo') {
+        await createTRT(numero, cidadeSede)
+        success('TRT cadastrado com sucesso!')
+      } else if (editando) {
+        await updateTRT(editando.id, numero, cidadeSede)
+        success('TRT atualizado com sucesso!')
+      }
+      setEditando(null)
+    } catch (err) {
+      toastError(err instanceof Error ? err.message : 'Erro ao salvar TRT')
     }
-    setEditando(null)
   }
 
   if (editando !== null) {

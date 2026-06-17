@@ -3,6 +3,7 @@ import { Search, Plus, Pencil, Users, Building2 } from 'lucide-react'
 import { usePeritosStore } from '../../store/peritosStore'
 import { Button } from '../../components/ui/Button'
 import { Input, FormField } from '../../components/ui/Input'
+import { useToast } from '../../components/ui/Toast'
 import { cn } from '../../lib/utils'
 import type { PeritoCadastro, TRT } from '../../types'
 
@@ -102,6 +103,7 @@ function PeritosForm({ trts, loading, initial, onSave, onCancel }: PeritosFormPr
 
 export default function PeritosPage() {
   const { trts, peritos, loading, fetchTRTs, fetchPeritos, createPerito, updatePerito } = usePeritosStore()
+  const { success, error: toastError } = useToast()
 
   const [query,   setQuery]   = useState('')
   const [filtroTRT, setFiltroTRT] = useState('')
@@ -121,12 +123,18 @@ export default function PeritosPage() {
   const multiTRT = peritos.filter((p) => p.trtsVinculados.length > 1).length
 
   async function handleSave(nome: string, trtIds: string[]) {
-    if (editando === 'novo') {
-      await createPerito(nome, trtIds)
-    } else if (editando) {
-      await updatePerito(editando.id, nome, trtIds)
+    try {
+      if (editando === 'novo') {
+        await createPerito(nome, trtIds)
+        success('Perito cadastrado com sucesso!')
+      } else if (editando) {
+        await updatePerito(editando.id, nome, trtIds)
+        success('Perito atualizado com sucesso!')
+      }
+      setEditando(null)
+    } catch (err) {
+      toastError(err instanceof Error ? err.message : 'Erro ao salvar perito')
     }
-    setEditando(null)
   }
 
   if (editando !== null) {

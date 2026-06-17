@@ -46,28 +46,44 @@ export const usePeritosStore = create<PeritosState>((set, get) => ({
   createPerito: async (nome, trtIds) => {
     set({ loading: true, error: null })
     const { data, error } = await svcCreatePerito(nome, trtIds)
-    if (error || !data) { set({ loading: false, error: String(error ?? 'Erro ao criar perito') }); return }
+    if (error || !data) {
+      const message = String(error ?? 'Erro ao criar perito')
+      set({ loading: false, error: message })
+      throw new Error(message)
+    }
     set((state) => ({ peritos: [...state.peritos, data].sort((a, b) => a.nome.localeCompare(b.nome)), loading: false }))
   },
 
   updatePerito: async (id, nome, trtIds) => {
     set({ loading: true, error: null })
     const { error } = await svcUpdatePerito(id, nome, trtIds)
-    if (error) { set({ loading: false, error: String(error) }); return }
+    if (error) {
+      const message = String(error)
+      set({ loading: false, error: message })
+      throw new Error(message)
+    }
     await get().fetchPeritos()
   },
 
   createTRT: async (numero, cidadeSede) => {
     set({ loading: true, error: null })
     const { data, error } = await svcCreateTRT(numero, cidadeSede)
-    if (error || !data) { set({ loading: false, error: String(error ?? 'Erro ao criar TRT') }); return }
+    if (error || !data) {
+      const message = String(error ?? 'Erro ao criar TRT')
+      set({ loading: false, error: message })
+      throw new Error(message)
+    }
     set((state) => ({ trts: [...state.trts, data].sort((a, b) => a.numero - b.numero), loading: false }))
   },
 
   updateTRT: async (id, numero, cidadeSede) => {
     set({ loading: true, error: null })
     const { error } = await svcUpdateTRT(id, numero, cidadeSede)
-    if (error) { set({ loading: false, error: String(error) }); return }
+    if (error) {
+      const message = String(error)
+      set({ loading: false, error: message })
+      throw new Error(message)
+    }
     await get().fetchTRTs()
   },
 }))
