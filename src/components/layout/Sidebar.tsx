@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import {
-  LayoutDashboard, Table2, PlusCircle, Upload,
+  LayoutDashboard, Table2, Upload,
   Settings, ChevronLeft, ChevronRight, LogOut, User,
   ChevronDown, Layers, Wallet, Trash2, AlertTriangle, ReceiptText, BookUser, FolderOpen, MapPin,
 } from 'lucide-react'
@@ -12,7 +12,6 @@ import { useAuth } from '../../contexts/AuthContext'
 const LOTES_ITEMS = [
   { to: '/',               icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/lotes',          icon: Table2,          label: 'Lotes' },
-  { to: '/lotes/novo',     icon: PlusCircle,      label: 'Novo Lote' },
   { to: '/lotes/importar', icon: Upload,          label: 'Importar XLS' },
 ]
 
