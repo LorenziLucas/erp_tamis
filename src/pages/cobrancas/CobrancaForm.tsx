@@ -64,7 +64,7 @@ export function CobrancaForm({ defaultValues, peritos, onSubmit, onCancel, loadi
       mesRef:          defaultValues?.mesRef          ? defaultValues.mesRef.substring(0, 7) : '',
       dataEnvio:       defaultValues?.dataEnvio       ?? '',
       valor:           defaultValues?.valor           ?? 0,
-      tipo:            defaultValues?.tipo            ?? 'Lote',
+      tipo:            defaultValues?.tipo            ?? 'Comissão',
       recebido:        defaultValues?.recebido        ?? false,
       dataRecebimento: defaultValues?.dataRecebimento ?? '',
       notaFiscal:      defaultValues?.notaFiscal      ?? 'Não Emitida',
