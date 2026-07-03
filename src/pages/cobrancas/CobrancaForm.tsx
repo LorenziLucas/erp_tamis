@@ -5,15 +5,20 @@ import { z } from 'zod'
 import { ExternalLink } from 'lucide-react'
 import { Input, Select, FormField } from '../../components/ui/Input'
 import { Button } from '../../components/ui/Button'
-import { TRT_OPTIONS } from '../../types'
-import { TIPO_COBRANCA_OPTIONS, NOTA_FISCAL_OPTIONS } from '../../types/cobrancas'
+import { SeletorTRTPerito } from '../../components/SeletorTRTPerito'
+import { REGIAO_MAP, TRT_OPTIONS } from '../../types'
+import { NOTA_FISCAL_OPTIONS } from '../../types/cobrancas'
+import { usePeritosStore } from '../../store/peritosStore'
+import { getPeritosByTRT } from '../../services/peritosService'
 import type { Cobranca, Perito } from '../../types/cobrancas'
 
 const schema = z.object({
+  trtId:           z.string().optional(),
+  peritoId:        z.string().optional(),
   perito:          z.string().min(2, 'Perito obrigatório'),
   cpfPerito:       z.string(),
   regiao:          z.string().min(1, 'Região obrigatória'),
-  mesRef:          z.string(),
+  mesRef:          z.string().min(1, 'Mês de referência obrigatório'),
   dataEnvio:       z.string(),
   valor:           z.number().min(0, 'Valor deve ser >= 0'),
   tipo:            z.enum(['Comissão', 'Lote']),
@@ -35,8 +40,11 @@ interface Props {
   submitLabel?: string
 }
 
-export function CobrancaForm({ defaultValues, peritoNames, peritos, onSubmit, onCancel, loading, submitLabel = 'Salvar' }: Props) {
+export function CobrancaForm({ defaultValues, peritos, onSubmit, onCancel, loading, submitLabel = 'Salvar' }: Props) {
   const cpfMap = Object.fromEntries(peritos.map((p) => [p.nome, p.cpf ?? '']))
+
+  const trts      = usePeritosStore((s) => s.trts)
+  const fetchTRTs = usePeritosStore((s) => s.fetchTRTs)
 
   const {
     register,
@@ -48,6 +56,8 @@ export function CobrancaForm({ defaultValues, peritoNames, peritos, onSubmit, on
   } = useForm<CobrancaFormData>({
     resolver: zodResolver(schema),
     defaultValues: {
+      trtId:           '',
+      peritoId:        '',
       perito:          defaultValues?.perito          ?? '',
       cpfPerito:       defaultValues?.cpfPerito       ?? '',
       regiao:          defaultValues?.regiao          ?? '',
@@ -62,9 +72,9 @@ export function CobrancaForm({ defaultValues, peritoNames, peritos, onSubmit, on
     },
   })
 
-  const peritoVal  = watch('perito')
-  const recebido   = watch('recebido')
-  const linkPdf    = watch('linkPdf')
+  const peritoVal = watch('perito')
+  const recebido  = watch('recebido')
+  const linkPdf   = watch('linkPdf')
 
   useEffect(() => {
     if (peritoVal && cpfMap[peritoVal] !== undefined) {
@@ -72,8 +82,26 @@ export function CobrancaForm({ defaultValues, peritoNames, peritos, onSubmit, on
     }
   }, [peritoVal, cpfMap, setValue])
 
+  // Modo edição: resolve trtId/peritoId a partir de regiao/perito salvos
+  useEffect(() => {
+    if (!defaultValues?.regiao || !defaultValues?.perito) return
+    if (!trts.length) { fetchTRTs(); return }
+
+    const matchTRT = trts.find((t) => {
+      const opt = TRT_OPTIONS.find((o) => o.value === `TRT_${t.numero}`)
+      return opt?.label === defaultValues.regiao
+    })
+    if (!matchTRT) return
+
+    setValue('trtId', matchTRT.id)
+
+    getPeritosByTRT(matchTRT.id).then(({ data }) => {
+      const found = data.find((p) => p.nome === defaultValues.perito)
+      if (found) setValue('peritoId', found.id)
+    })
+  }, [defaultValues?.regiao, defaultValues?.perito, trts, fetchTRTs, setValue])
+
   const handleValid: SubmitHandler<CobrancaFormData> = (data) => {
-    // Normaliza mesRef para YYYY-MM-01
     const mesRef = data.mesRef ? `${data.mesRef}-01` : ''
     onSubmit({ ...data, mesRef })
   }
@@ -81,65 +109,49 @@ export function CobrancaForm({ defaultValues, peritoNames, peritos, onSubmit, on
   return (
     <form onSubmit={handleSubmit(handleValid)} className="space-y-5">
 
-      {/* Row 1: Perito + CPF */}
+      {/* Região + Perito */}
+      <SeletorTRTPerito
+        trtId={watch('trtId') ?? ''}
+        peritoId={watch('peritoId') ?? ''}
+        onChangeTRT={(trtId, trt) => {
+          setValue('trtId',    trtId,                 { shouldValidate: true, shouldDirty: true })
+          setValue('regiao',   REGIAO_MAP[trt] ?? '', { shouldValidate: true, shouldDirty: true })
+          setValue('peritoId', '',                    { shouldDirty: true })
+          setValue('perito',   '',                    { shouldDirty: true })
+        }}
+        onChangePerito={(peritoId, perito) => {
+          setValue('peritoId', peritoId, { shouldValidate: true, shouldDirty: true })
+          setValue('perito',   perito,   { shouldValidate: true, shouldDirty: true })
+        }}
+        erroTRT={errors.regiao?.message}
+        erroPeito={errors.perito?.message}
+      />
+
+      {/* CPF do Perito */}
+      <FormField label="CPF do Perito">
+        <Input
+          {...register('cpfPerito')}
+          placeholder="000.000.000-00"
+          className={cpfMap[peritoVal] ? 'opacity-70' : ''}
+        />
+        {cpfMap[peritoVal] && (
+          <p className="mt-1 text-[11px] text-[#1B4D2E]/70">⚡ Preenchido automaticamente do cadastro</p>
+        )}
+      </FormField>
+
+      {/* Mês de Referência + Data do Envio */}
       <div className="grid grid-cols-2 gap-4">
-        <FormField label="Perito" required error={errors.perito?.message}>
-          {peritoNames.length > 0 ? (
-            <Controller
-              name="perito"
-              control={control}
-              render={({ field }) => (
-                <Select {...field} error={errors.perito?.message}>
-                  <option value="">Selecione…</option>
-                  {peritoNames.map((n) => <option key={n} value={n}>{n}</option>)}
-                </Select>
-              )}
-            />
-          ) : (
-            <Input {...register('perito')} placeholder="Nome do perito" error={errors.perito?.message} />
-          )}
+        <FormField label="Mês de Referência" required error={errors.mesRef?.message}>
+          <Input {...register('mesRef')} type="month" error={errors.mesRef?.message} />
         </FormField>
 
-        <FormField label="CPF do Perito">
-          <Input
-            {...register('cpfPerito')}
-            placeholder="000.000.000-00"
-            className={cpfMap[peritoVal] ? 'opacity-70' : ''}
-          />
-          {cpfMap[peritoVal] && (
-            <p className="mt-1 text-[11px] text-[#1B4D2E]/70">⚡ Preenchido automaticamente do cadastro</p>
-          )}
-        </FormField>
-      </div>
-
-      {/* Row 2: Região + Mês Ref */}
-      <div className="grid grid-cols-2 gap-4">
-        <FormField label="Região" required error={errors.regiao?.message}>
-          <Controller
-            name="regiao"
-            control={control}
-            render={({ field }) => (
-              <Select {...field} error={errors.regiao?.message}>
-                <option value="">Selecione…</option>
-                {TRT_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.label}>{o.label}</option>
-                ))}
-              </Select>
-            )}
-          />
-        </FormField>
-
-        <FormField label="Mês de Referência">
-          <Input {...register('mesRef')} type="month" />
-        </FormField>
-      </div>
-
-      {/* Row 3: Data Envio + Valor + Tipo */}
-      <div className="grid grid-cols-3 gap-4">
         <FormField label="Data do Envio">
           <Input {...register('dataEnvio')} type="date" />
         </FormField>
+      </div>
 
+      {/* Valor + Tipo */}
+      <div className="grid grid-cols-2 gap-4">
         <FormField label="Valor (R$)" required error={errors.valor?.message}>
           <Input
             {...register('valor', { valueAsNumber: true })}
@@ -155,15 +167,32 @@ export function CobrancaForm({ defaultValues, peritoNames, peritos, onSubmit, on
             name="tipo"
             control={control}
             render={({ field }) => (
-              <Select {...field}>
-                {TIPO_COBRANCA_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
-              </Select>
+              <div className="flex items-center gap-6 h-8">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 rounded border-[#D4DAD6] accent-[#1B4D2E]"
+                    checked={field.value === 'Comissão'}
+                    onChange={() => field.onChange('Comissão')}
+                  />
+                  <span className="text-sm text-[#5A6A5E]">Comissão</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 rounded border-[#D4DAD6] accent-[#1B4D2E]"
+                    checked={field.value === 'Lote'}
+                    onChange={() => field.onChange('Lote')}
+                  />
+                  <span className="text-sm text-[#5A6A5E]">Lote</span>
+                </label>
+              </div>
             )}
           />
         </FormField>
       </div>
 
-      {/* Row 4: Recebido + Data Recebimento + Nota Fiscal */}
+      {/* Recebido + Data Recebimento + Nota Fiscal */}
       <div className="grid grid-cols-3 gap-4">
         <FormField label="Foi Recebido?">
           <div className="flex items-center gap-2 h-8">
@@ -199,7 +228,7 @@ export function CobrancaForm({ defaultValues, peritoNames, peritos, onSubmit, on
         </FormField>
       </div>
 
-      {/* Row 5: Link PDF */}
+      {/* Link PDF */}
       <FormField label="Link do PDF (OneDrive)">
         <div className="flex gap-2">
           <Input {...register('linkPdf')} placeholder="Cole aqui o link do OneDrive…" />
