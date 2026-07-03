@@ -265,11 +265,22 @@ export default function CobrancasPage() {
   const totalCobrado  = filtered.reduce((s, c) => s + c.valor, 0)
   const totalRecebido = filtered.filter((c) => c.recebido).reduce((s, c) => s + c.valor, 0)
   const totalPendente = filtered.filter((c) => !c.recebido).reduce((s, c) => s + c.valor, 0)
-  const qtdRecebido    = filtered.filter((c) => c.recebido).length
-  const qtdNaoRecebido = filtered.filter((c) => !c.recebido).length
-  const taxaRecebimento = filtered.length > 0
-    ? Math.round((qtdRecebido / filtered.length) * 100)
+
+  // Contagens por linhas agrupadas (par Comissão+Lote = 1 cobrança)
+  const { qtdRecebido, qtdNaoRecebido, totalLinhas } = useMemo(() => {
+    let rec = 0, nao = 0
+    for (const row of groupedRows) {
+      if (row.grouped ? row.recebido : row.cobranca.recebido) rec++
+      else nao++
+    }
+    return { qtdRecebido: rec, qtdNaoRecebido: nao, totalLinhas: groupedRows.length }
+  }, [groupedRows])
+
+  const taxaRecebimento = totalLinhas > 0
+    ? Math.round((qtdRecebido / totalLinhas) * 100)
     : 0
+
+  const totalLinhasGlobal = useMemo(() => groupCobrancas(cobrancas).length, [cobrancas])
 
   // Chart data (baseado no filtrado)
   const monthly = useMemo(() => buildMonthlyData(filtered), [filtered])
@@ -481,7 +492,7 @@ export default function CobrancasPage() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard label="Total Cobrado"        value={formatCurrency(totalCobrado)}  color="blue"   icon={DollarSign} />
+        <KpiCard label="Total Cobrado"        value={formatCurrency(totalCobrado)}  color="blue"   icon={DollarSign} sub={`${totalLinhas} cobrança${totalLinhas !== 1 ? 's' : ''}`} />
         <KpiCard label="Total Recebido"       value={formatCurrency(totalRecebido)} color="green"  icon={TrendingUp}  sub={`${qtdRecebido} cobranças`} />
         <KpiCard label="Total Pendente"       value={formatCurrency(totalPendente)} color="red"    icon={Clock}       sub={`${qtdNaoRecebido} cobranças`} />
         <KpiCard label="Taxa de Recebimento"  value={`${taxaRecebimento}%`}         color="orange" icon={TrendingUp}  sub={`${qtdRecebido} recebidas · ${qtdNaoRecebido} pendentes`} />
@@ -712,10 +723,10 @@ export default function CobrancasPage() {
           </div>
         )}
 
-        {sorted.length > 0 && (
+        {groupedRows.length > 0 && (
           <div className="px-4 py-2 border-t border-[#D4DAD6] bg-[#F4F6F4] text-xs text-[#5A6A5E]">
-            {sorted.length} cobrança{sorted.length !== 1 ? 's' : ''}
-            {sorted.length !== cobrancas.length && ` (de ${cobrancas.length} no total)`}
+            {groupedRows.length} cobrança{groupedRows.length !== 1 ? 's' : ''}
+            {groupedRows.length !== totalLinhasGlobal && ` (de ${totalLinhasGlobal} no total)`}
             {' · '}Total filtrado: <strong className="text-[#1B4D2E]">{formatCurrency(sorted.reduce((s, c) => s + c.valor, 0))}</strong>
           </div>
         )}
