@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useForm, Controller, type SubmitHandler } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -12,7 +12,10 @@ import { usePeritosStore } from '../../store/peritosStore'
 import { getPeritosByTRT } from '../../services/peritosService'
 import type { Cobranca, Perito } from '../../types/cobrancas'
 
-const schema = z.object({
+// Schema com todos os campos possíveis (edição usa valor/tipo; criação usa
+// comissao/lote/valorComissao/valorLote). Mantido único para dar um tipo
+// estável ao react-hook-form — a validação condicional é aplicada por cima.
+const baseSchema = z.object({
   trtId:           z.string().optional(),
   peritoId:        z.string().optional(),
   perito:          z.string().min(2, 'Perito obrigatório'),
@@ -22,19 +25,56 @@ const schema = z.object({
   dataEnvio:       z.string(),
   valor:           z.number().min(0, 'Valor deve ser >= 0'),
   tipo:            z.enum(['Comissão', 'Lote']),
+  comissao:        z.boolean(),
+  lote:            z.boolean(),
+  valorComissao:   z.number().min(0, 'Valor deve ser >= 0'),
+  valorLote:       z.number().min(0, 'Valor deve ser >= 0'),
   recebido:        z.boolean(),
   dataRecebimento: z.string(),
   notaFiscal:      z.enum(['Emitida', 'Não Emitida']),
   linkPdf:         z.string(),
 })
 
-export type CobrancaFormData = z.infer<typeof schema>
+const createSchema = baseSchema.refine((data) => data.comissao || data.lote, {
+  message: 'Selecione ao menos um tipo (Comissão ou Lote)',
+  path: ['comissao'],
+})
+
+export type CobrancaFormData = z.infer<typeof baseSchema>
+
+/** Payload pronto para persistir — 1 registro por tipo (Comissão/Lote). */
+export type CobrancaSubmitData = {
+  perito: string
+  cpfPerito: string
+  regiao: string
+  mesRef: string
+  dataEnvio: string
+  valor: number
+  tipo: 'Comissão' | 'Lote'
+  recebido: boolean
+  dataRecebimento: string
+  notaFiscal: 'Emitida' | 'Não Emitida'
+  linkPdf: string
+}
+
+/** Mês anterior ao atual, no formato YYYY-MM (compatível com <input type="month">). */
+function getPreviousMonthValue(): string {
+  const now = new Date()
+  const d = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+
+/** Data de hoje no formato YYYY-MM-DD (compatível com <input type="date">). */
+function getTodayValue(): string {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+}
 
 interface Props {
   defaultValues?: Partial<Cobranca>
   peritoNames: string[]
   peritos: Perito[]
-  onSubmit: (data: CobrancaFormData) => void
+  onSubmit: (data: CobrancaSubmitData[]) => void
   onCancel: () => void
   loading?: boolean
   submitLabel?: string
@@ -42,9 +82,12 @@ interface Props {
 
 export function CobrancaForm({ defaultValues, peritos, onSubmit, onCancel, loading, submitLabel = 'Salvar' }: Props) {
   const cpfMap = Object.fromEntries(peritos.map((p) => [p.nome, p.cpf ?? '']))
+  const isEdit = !!defaultValues
 
   const trts      = usePeritosStore((s) => s.trts)
   const fetchTRTs = usePeritosStore((s) => s.fetchTRTs)
+
+  const schema = useMemo(() => (isEdit ? baseSchema : createSchema), [isEdit])
 
   const {
     register,
@@ -61,10 +104,16 @@ export function CobrancaForm({ defaultValues, peritos, onSubmit, onCancel, loadi
       perito:          defaultValues?.perito          ?? '',
       cpfPerito:       defaultValues?.cpfPerito       ?? '',
       regiao:          defaultValues?.regiao          ?? '',
-      mesRef:          defaultValues?.mesRef          ? defaultValues.mesRef.substring(0, 7) : '',
-      dataEnvio:       defaultValues?.dataEnvio       ?? '',
+      mesRef:          isEdit
+        ? (defaultValues?.mesRef ? defaultValues.mesRef.substring(0, 7) : '')
+        : getPreviousMonthValue(),
+      dataEnvio:       isEdit ? (defaultValues?.dataEnvio ?? '') : getTodayValue(),
       valor:           defaultValues?.valor           ?? 0,
       tipo:            defaultValues?.tipo            ?? 'Comissão',
+      comissao:        !isEdit || defaultValues?.tipo === 'Comissão',
+      lote:            isEdit && defaultValues?.tipo === 'Lote',
+      valorComissao:   0,
+      valorLote:       0,
       recebido:        defaultValues?.recebido        ?? false,
       dataRecebimento: defaultValues?.dataRecebimento ?? '',
       notaFiscal:      defaultValues?.notaFiscal      ?? 'Não Emitida',
@@ -75,6 +124,8 @@ export function CobrancaForm({ defaultValues, peritos, onSubmit, onCancel, loadi
   const peritoVal = watch('perito')
   const recebido  = watch('recebido')
   const linkPdf   = watch('linkPdf')
+  const comissaoVal = watch('comissao')
+  const loteVal      = watch('lote')
 
   useEffect(() => {
     if (peritoVal && cpfMap[peritoVal] !== undefined) {
@@ -103,7 +154,27 @@ export function CobrancaForm({ defaultValues, peritos, onSubmit, onCancel, loadi
 
   const handleValid: SubmitHandler<CobrancaFormData> = (data) => {
     const mesRef = data.mesRef ? `${data.mesRef}-01` : ''
-    onSubmit({ ...data, mesRef })
+    const common = {
+      perito:          data.perito,
+      cpfPerito:       data.cpfPerito,
+      regiao:          data.regiao,
+      mesRef,
+      dataEnvio:       data.dataEnvio,
+      recebido:        data.recebido,
+      dataRecebimento: data.dataRecebimento,
+      notaFiscal:      data.notaFiscal,
+      linkPdf:         data.linkPdf,
+    }
+
+    if (isEdit) {
+      onSubmit([{ ...common, valor: data.valor, tipo: data.tipo }])
+      return
+    }
+
+    const payloads: CobrancaSubmitData[] = []
+    if (data.comissao) payloads.push({ ...common, valor: data.valorComissao, tipo: 'Comissão' })
+    if (data.lote)     payloads.push({ ...common, valor: data.valorLote,     tipo: 'Lote' })
+    onSubmit(payloads)
   }
 
   return (
@@ -151,46 +222,98 @@ export function CobrancaForm({ defaultValues, peritos, onSubmit, onCancel, loadi
       </div>
 
       {/* Valor + Tipo */}
-      <div className="grid grid-cols-2 gap-4">
-        <FormField label="Valor (R$)" required error={errors.valor?.message}>
-          <Input
-            {...register('valor', { valueAsNumber: true })}
-            type="number"
-            step="0.01"
-            min={0}
-            error={errors.valor?.message}
-          />
-        </FormField>
+      {isEdit ? (
+        <div className="grid grid-cols-2 gap-4">
+          <FormField label="Valor (R$)" required error={errors.valor?.message}>
+            <Input
+              {...register('valor', { valueAsNumber: true })}
+              type="number"
+              step="0.01"
+              min={0}
+              error={errors.valor?.message}
+            />
+          </FormField>
 
-        <FormField label="Tipo" required>
-          <Controller
-            name="tipo"
-            control={control}
-            render={({ field }) => (
-              <div className="flex items-center gap-6 h-8">
-                <label className="flex items-center gap-2 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    className="w-4 h-4 rounded border-[#D4DAD6] accent-[#1B4D2E]"
-                    checked={field.value === 'Comissão'}
-                    onChange={() => field.onChange('Comissão')}
+          <FormField label="Tipo" required>
+            <Controller
+              name="tipo"
+              control={control}
+              render={({ field }) => (
+                <div className="flex items-center gap-6 h-8">
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4 rounded border-[#D4DAD6] accent-[#1B4D2E]"
+                      checked={field.value === 'Comissão'}
+                      onChange={() => field.onChange('Comissão')}
+                    />
+                    <span className="text-sm text-[#5A6A5E]">Comissão</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4 rounded border-[#D4DAD6] accent-[#1B4D2E]"
+                      checked={field.value === 'Lote'}
+                      onChange={() => field.onChange('Lote')}
+                    />
+                    <span className="text-sm text-[#5A6A5E]">Lote</span>
+                  </label>
+                </div>
+              )}
+            />
+          </FormField>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <FormField label="Tipo" required error={errors.comissao?.message}>
+            <div className="flex items-center gap-6 h-8">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  {...register('comissao')}
+                  type="checkbox"
+                  className="w-4 h-4 rounded border-[#D4DAD6] accent-[#1B4D2E]"
+                />
+                <span className="text-sm text-[#5A6A5E]">Comissão</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  {...register('lote')}
+                  type="checkbox"
+                  className="w-4 h-4 rounded border-[#D4DAD6] accent-[#1B4D2E]"
+                />
+                <span className="text-sm text-[#5A6A5E]">Lote</span>
+              </label>
+            </div>
+          </FormField>
+
+          {(comissaoVal || loteVal) && (
+            <div className={`grid gap-4 ${comissaoVal && loteVal ? 'grid-cols-2' : 'grid-cols-1'}`}>
+              {comissaoVal && (
+                <FormField label="Valor Comissão (R$)" required error={errors.valorComissao?.message}>
+                  <Input
+                    {...register('valorComissao', { valueAsNumber: true })}
+                    type="number"
+                    step="0.01"
+                    min={0}
+                    error={errors.valorComissao?.message}
                   />
-                  <span className="text-sm text-[#5A6A5E]">Comissão</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    className="w-4 h-4 rounded border-[#D4DAD6] accent-[#1B4D2E]"
-                    checked={field.value === 'Lote'}
-                    onChange={() => field.onChange('Lote')}
+                </FormField>
+              )}
+              {loteVal && (
+                <FormField label="Valor Lote (R$)" required error={errors.valorLote?.message}>
+                  <Input
+                    {...register('valorLote', { valueAsNumber: true })}
+                    type="number"
+                    step="0.01"
+                    min={0}
+                    error={errors.valorLote?.message}
                   />
-                  <span className="text-sm text-[#5A6A5E]">Lote</span>
-                </label>
-              </div>
-            )}
-          />
-        </FormField>
-      </div>
+                </FormField>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Recebido + Data Recebimento + Nota Fiscal */}
       <div className="grid grid-cols-3 gap-4">

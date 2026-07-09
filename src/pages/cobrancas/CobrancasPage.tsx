@@ -20,7 +20,7 @@ import { Select } from '../../components/ui/Input'
 import { Modal, ConfirmDialog } from '../../components/ui/Modal'
 import { useToast } from '../../components/ui/Toast'
 import { cn, formatCurrency, formatDate, formatMonthYear } from '../../lib/utils'
-import { CobrancaForm, type CobrancaFormData } from './CobrancaForm'
+import { CobrancaForm, type CobrancaSubmitData } from './CobrancaForm'
 import type { Cobranca } from '../../types/cobrancas'
 
 type GroupedCobranca =
@@ -371,32 +371,46 @@ export default function CobrancasPage() {
   const uniqueRegioes    = [...new Set(cobrancas.map((c) => c.regiao).filter(Boolean))].sort()
   const availableMonths  = [...new Set(cobrancas.map((c) => c.mesRef?.substring(0, 7)).filter(Boolean) as string[])].sort()
 
-  async function handleSubmit(data: CobrancaFormData) {
+  async function handleSubmit(items: CobrancaSubmitData[]) {
+    if (items.length === 0) return
     setSaving(true)
-    const payload = {
-      perito:          data.perito,
-      cpfPerito:       data.cpfPerito || null,
-      regiao:          data.regiao,
-      mesRef:          data.mesRef || null,
-      dataEnvio:       data.dataEnvio || null,
-      valor:           data.valor,
-      tipo:            data.tipo,
-      recebido:        data.recebido,
-      dataRecebimento: data.dataRecebimento || null,
-      notaFiscal:      data.notaFiscal,
-      linkPdf:         data.linkPdf || null,
+
+    // Persiste CPF no cadastro de peritos uma única vez
+    const first = items[0]
+    if (first.cpfPerito) await saveCpf(first.perito, first.cpfPerito)
+
+    for (const data of items) {
+      const payload = {
+        perito:          data.perito,
+        cpfPerito:       data.cpfPerito || null,
+        regiao:          data.regiao,
+        mesRef:          data.mesRef || null,
+        dataEnvio:       data.dataEnvio || null,
+        valor:           data.valor,
+        tipo:            data.tipo,
+        recebido:        data.recebido,
+        dataRecebimento: data.dataRecebimento || null,
+        notaFiscal:      data.notaFiscal,
+        linkPdf:         data.linkPdf || null,
+      }
+
+      const err = editTarget
+        ? await updateCobranca(editTarget.id, payload)
+        : await addCobranca(payload)
+
+      if (err) {
+        setSaving(false)
+        toastError(err)
+        return
+      }
     }
 
-    // Persiste CPF no cadastro de peritos
-    if (data.cpfPerito) await saveCpf(data.perito, data.cpfPerito)
-
-    const err = editTarget
-      ? await updateCobranca(editTarget.id, payload)
-      : await addCobranca(payload)
-
     setSaving(false)
-    if (err) { toastError(err); return }
-    toastSuccess(editTarget ? 'Cobrança atualizada!' : 'Cobrança cadastrada!')
+    toastSuccess(
+      items.length > 1
+        ? `${items.length} cobranças cadastradas!`
+        : editTarget ? 'Cobrança atualizada!' : 'Cobrança cadastrada!'
+    )
     setModalOpen(false)
     setEditTarget(null)
   }
