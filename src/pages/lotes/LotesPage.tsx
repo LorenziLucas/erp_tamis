@@ -52,8 +52,9 @@ export default function LotesPage() {
 
   useEffect(() => { fetchLotes() }, [fetchLotes])
 
-  const [query,        setQuery]        = useState('')
-  const [filterMesRef, setFilterMesRef] = useState('')
+  const [query,   setQuery]   = useState('')
+  const [filterDe,  setFilterDe]  = useState('')
+  const [filterAte, setFilterAte] = useState('')
   const [sortKey,      setSortKey]      = useState<SortKey>('envio')
   const [sortDir,      setSortDir]      = useState<SortDir>('desc')
   const [page,         setPage]         = useState(1)
@@ -80,11 +81,13 @@ export default function LotesPage() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return lotes.filter((l) => {
-      if (filterMesRef && !l.mesRef.startsWith(filterMesRef)) return false
+      const mesRefYm = l.mesRef.slice(0, 7)
+      if (filterDe  && mesRefYm < filterDe)  return false
+      if (filterAte && mesRefYm > filterAte) return false
       if (q && !loteSearchable(l).includes(q)) return false
       return true
     })
-  }, [lotes, query, filterMesRef])
+  }, [lotes, query, filterDe, filterAte])
 
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
@@ -139,7 +142,7 @@ export default function LotesPage() {
           <h1 className="text-xl font-bold text-[#1A1A1A]">Lotes</h1>
           <p className="text-sm text-[#5A6A5E] mt-0.5">
             {lotes.length} lote(s) no total
-            {(query || filterMesRef) && <> · <span className="text-[#2D7A47]">{filtered.length} resultado(s)</span></>}
+            {(query || filterDe || filterAte) && <> · <span className="text-[#2D7A47]">{filtered.length} resultado(s)</span></>}
           </p>
         </div>
         <div className="flex gap-2">
@@ -173,17 +176,43 @@ export default function LotesPage() {
 
         <div className="relative shrink-0">
           <select
-            value={filterMesRef}
-            onChange={(e) => { setFilterMesRef(e.target.value); setPage(1) }}
+            value={filterDe}
+            onChange={(e) => { setFilterDe(e.target.value); setPage(1) }}
             className="h-9 pl-3 pr-8 bg-white border border-[#D4DAD6] rounded-lg text-sm text-[#5A6A5E] focus:outline-none focus:border-[#1B4D2E] focus:ring-1 focus:ring-[#1B4D2E]/30 transition-colors appearance-none cursor-pointer min-w-[130px]"
           >
-            <option value="">Todos os meses</option>
+            <option value="">De (mês)</option>
             {mesRefOptions.map(({ key, label }) => (
               <option key={key} value={key}>{label}</option>
             ))}
           </select>
           <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#9AA4A0] pointer-events-none" />
         </div>
+
+        <span className="text-xs text-[#9AA4A0] shrink-0">até</span>
+
+        <div className="relative shrink-0">
+          <select
+            value={filterAte}
+            onChange={(e) => { setFilterAte(e.target.value); setPage(1) }}
+            className="h-9 pl-3 pr-8 bg-white border border-[#D4DAD6] rounded-lg text-sm text-[#5A6A5E] focus:outline-none focus:border-[#1B4D2E] focus:ring-1 focus:ring-[#1B4D2E]/30 transition-colors appearance-none cursor-pointer min-w-[130px]"
+          >
+            <option value="">Até (mês)</option>
+            {mesRefOptions.map(({ key, label }) => (
+              <option key={key} value={key}>{label}</option>
+            ))}
+          </select>
+          <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#9AA4A0] pointer-events-none" />
+        </div>
+
+        {(filterDe || filterAte) && (
+          <button
+            onClick={() => { setFilterDe(''); setFilterAte(''); setPage(1) }}
+            className="flex items-center gap-1 h-9 px-2.5 text-xs text-[#5A6A5E] hover:text-[#1A1A1A] border border-[#D4DAD6] rounded-lg bg-white transition-colors shrink-0"
+            title="Limpar intervalo"
+          >
+            <X size={12} /> Limpar
+          </button>
+        )}
       </div>
 
       {/* Tabela */}
