@@ -500,7 +500,7 @@ export default function Dashboard() {
           description="Importe sua planilha Excel ou cadastre lotes manualmente para ver as métricas aqui."
           action={
             <div className="flex gap-3">
-              <Link to="/lotes/importar"><Button variant="primary" size="lg"><Upload size={15} /> Importar XLS</Button></Link>
+              <Link to="/lotes?importar=1"><Button variant="primary" size="lg"><Upload size={15} /> Importar XLS</Button></Link>
               <Link to="/lotes/novo"><Button variant="secondary" size="lg"><PlusCircle size={15} /> Novo Lote</Button></Link>
             </div>
           }
@@ -740,7 +740,7 @@ export default function Dashboard() {
           <p className="text-sm text-[#5A6A5E] mt-0.5">Visão geral — {lotes.length} lotes cadastrados</p>
         </div>
         <div className="flex gap-2">
-          <Link to="/lotes/importar"><Button variant="secondary" size="md"><Upload size={13} /> Importar XLS</Button></Link>
+          <Link to="/lotes?importar=1"><Button variant="secondary" size="md"><Upload size={13} /> Importar XLS</Button></Link>
           <Link to="/lotes/novo"><Button variant="primary" size="md"><PlusCircle size={13} /> Novo Lote</Button></Link>
         </div>
       </div>
