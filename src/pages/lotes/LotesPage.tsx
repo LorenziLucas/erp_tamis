@@ -319,15 +319,15 @@ export default function LotesPage() {
                   <td className="px-3 py-2 text-[11px] text-[#5A6A5E] font-semibold uppercase tracking-wide" colSpan={7}>
                     Total — {sorted.length} lote{sorted.length !== 1 ? 's' : ''}
                   </td>
-                  <td className="px-3 py-2 text-right text-[11px] font-bold text-[#5A6A5E]">
+                  <td className="px-3 py-2 text-right text-xs font-bold text-emerald-600">
                     {totalQtdAnalisada.toLocaleString('pt-BR')}
                   </td>
                   <td className="px-3 py-2" />
-                  <td className="px-3 py-2 text-right text-sm font-bold text-emerald-600 whitespace-nowrap">
+                  <td className="px-3 py-2 text-right text-xs font-bold text-emerald-600 whitespace-nowrap">
                     {formatCurrency(totalValor)}
                   </td>
                   <td className="px-3 py-2" />
-                  <td className="px-3 py-2 text-center text-[11px] font-bold text-[#5A6A5E]">
+                  <td className="px-3 py-2 text-center text-xs font-bold text-emerald-600">
                     {totalQtdP.toLocaleString('pt-BR')}
                   </td>
                   <td className="px-3 py-2" />
