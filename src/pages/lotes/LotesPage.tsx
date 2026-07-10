@@ -52,9 +52,10 @@ export default function LotesPage() {
 
   useEffect(() => { fetchLotes() }, [fetchLotes])
 
-  const [query,   setQuery]   = useState('')
-  const [filterDe,  setFilterDe]  = useState('')
-  const [filterAte, setFilterAte] = useState('')
+  const [query,         setQuery]         = useState('')
+  const [filterDe,      setFilterDe]      = useState('')
+  const [filterAte,     setFilterAte]     = useState('')
+  const [filterAnalise, setFilterAnalise] = useState<'' | '1ª' | '2ª'>('')
   const [sortKey,      setSortKey]      = useState<SortKey>('envio')
   const [sortDir,      setSortDir]      = useState<SortDir>('desc')
   const [page,         setPage]         = useState(1)
@@ -82,12 +83,13 @@ export default function LotesPage() {
     const q = query.trim().toLowerCase()
     return lotes.filter((l) => {
       const mesRefYm = l.mesRef.slice(0, 7)
-      if (filterDe  && mesRefYm < filterDe)  return false
-      if (filterAte && mesRefYm > filterAte) return false
+      if (filterDe      && mesRefYm < filterDe)          return false
+      if (filterAte      && mesRefYm > filterAte)        return false
+      if (filterAnalise && l.analise !== filterAnalise)  return false
       if (q && !loteSearchable(l).includes(q)) return false
       return true
     })
-  }, [lotes, query, filterDe, filterAte])
+  }, [lotes, query, filterDe, filterAte, filterAnalise])
 
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
@@ -142,7 +144,7 @@ export default function LotesPage() {
           <h1 className="text-xl font-bold text-[#1A1A1A]">Lotes</h1>
           <p className="text-sm text-[#5A6A5E] mt-0.5">
             {lotes.length} lote(s) no total
-            {(query || filterDe || filterAte) && <> · <span className="text-[#2D7A47]">{filtered.length} resultado(s)</span></>}
+            {(query || filterDe || filterAte || filterAnalise) && <> · <span className="text-[#2D7A47]">{filtered.length} resultado(s)</span></>}
           </p>
         </div>
         <div className="flex gap-2">
@@ -213,6 +215,26 @@ export default function LotesPage() {
             <X size={12} /> Limpar
           </button>
         )}
+
+        <div className="flex items-center gap-1 h-9 p-1 bg-white border border-[#D4DAD6] rounded-lg shrink-0">
+          {([
+            { value: '', label: 'Todas' },
+            { value: '1ª', label: '1ª análise' },
+            { value: '2ª', label: '2ª análise' },
+          ] as const).map(({ value, label }) => (
+            <button
+              key={value}
+              onClick={() => { setFilterAnalise(value); setPage(1) }}
+              className={`h-7 px-2.5 text-xs rounded-md transition-colors ${
+                filterAnalise === value
+                  ? 'bg-[#1B4D2E] text-white'
+                  : 'text-[#5A6A5E] hover:text-[#1A1A1A]'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Tabela */}
