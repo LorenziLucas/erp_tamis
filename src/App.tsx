@@ -6,7 +6,6 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import Dashboard from './pages/Dashboard'
 import LotesPage from './pages/lotes/LotesPage'
 import NovoLotePage from './pages/lotes/NovoLotePage'
-import ImportarPage from './pages/lotes/ImportarPage'
 import LoginPage from './pages/LoginPage'
 import CobrancasPage from './pages/cobrancas/CobrancasPage'
 import PeritosPage from './pages/peritos/PeritosPage'
@@ -37,7 +36,6 @@ function AppRoutes() {
         <Route path="/" element={<Dashboard />} />
         <Route path="/lotes" element={<LotesPage />} />
         <Route path="/lotes/novo" element={<NovoLotePage />} />
-        <Route path="/lotes/importar" element={<ImportarPage />} />
         <Route path="/financeiro/cobrancas" element={<CobrancasPage />} />
         <Route path="/cadastros/peritos"   element={<PeritosPage />} />
         <Route path="/cadastros/trts"     element={<TRTsPage />} />

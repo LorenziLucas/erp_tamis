@@ -1,8 +1,9 @@
-import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Search, PlusCircle, Upload, Download, X,
   ChevronUp, ChevronDown, Pencil, Trash2, ChevronsUpDown,
+  FileSpreadsheet, AlertCircle, CheckCircle, ArrowLeft,
 } from 'lucide-react'
 import { useLotesStore } from '../../store/lotesStore'
 import { useToast } from '../../components/ui/Toast'
@@ -13,14 +14,16 @@ import { Modal } from '../../components/ui/Modal'
 import { ConfirmDialog } from '../../components/ui/Modal'
 import { LoteForm } from './LoteForm'
 import type { LoteFormData } from './LoteForm'
-import { exportToXlsx } from '../../lib/excelUtils'
-import { formatCurrency, formatDate, formatMonthYear } from '../../lib/utils'
+import { exportToXlsx, parseXlsx, importXlsx, downloadTemplate } from '../../lib/excelUtils'
+import type { ImportPreview } from '../../lib/excelUtils'
+import { formatCurrency, formatDate, formatMonthYear, cn } from '../../lib/utils'
 import type { Lote } from '../../types'
 
 const PAGE_SIZE = 20
 
 type SortKey = keyof Lote
 type SortDir = 'asc' | 'desc'
+type ImportStage = 'idle' | 'preview' | 'importing' | 'done'
 
 function loteSearchable(l: Lote): string {
   return [
@@ -47,6 +50,7 @@ export default function LotesPage() {
   const fetchLotes  = useLotesStore((s) => s.fetchLotes)
   const updateLote  = useLotesStore((s) => s.updateLote)
   const deleteLote  = useLotesStore((s) => s.deleteLote)
+  const addLotes    = useLotesStore((s) => s.addLotes)
   const loading     = useLotesStore((s) => s.loading)
   const { success, error: toastError } = useToast()
 
@@ -62,6 +66,73 @@ export default function LotesPage() {
 
   const [editLote,  setEditLote]  = useState<Lote | null>(null)
   const [deleteId,  setDeleteId]  = useState<string | null>(null)
+
+  // ── Importar XLS (modal) ─────────────────────────────────────────────
+  const [showImportar, setShowImportar] = useState(false)
+  const importInputRef = useRef<HTMLInputElement>(null)
+
+  const [importStage,     setImportStage]     = useState<ImportStage>('idle')
+  const [dragging,        setDragging]        = useState(false)
+  const [importFile,      setImportFile]      = useState<File | null>(null)
+  const [importPreview,   setImportPreview]   = useState<ImportPreview | null>(null)
+  const [imported,        setImported]        = useState(0)
+  const [duplicates,      setDuplicates]      = useState(0)
+  const [importErrors,    setImportErrors]    = useState<string[]>([])
+
+  const processFile = useCallback(async (f: File) => {
+    setImportFile(f)
+    const p = await parseXlsx(f)
+    setImportPreview(p)
+    setImportStage('preview')
+  }, [])
+
+  const handleImportDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setDragging(false)
+    const f = e.dataTransfer.files[0]
+    if (f && (f.name.endsWith('.xlsx') || f.name.endsWith('.xls'))) processFile(f)
+    else toastError('Por favor, selecione um arquivo .xlsx ou .xls')
+  }, [processFile, toastError])
+
+  const handleImportFileInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0]
+    if (f) processFile(f)
+  }, [processFile])
+
+  const handleImport = async () => {
+    if (!importFile) return
+    setImportStage('importing')
+    const result = await importXlsx(importFile, lotes)
+    const { imported: importedCount, errors: saveErrors } = await addLotes(result.lotes)
+    const allErrors = [...result.errors, ...saveErrors]
+    setImported(importedCount)
+    setDuplicates(result.duplicates)
+    setImportErrors(allErrors)
+    setImportStage('done')
+    if (importedCount > 0) {
+      const dupMsg = result.duplicates > 0 ? ` (${result.duplicates} duplicata(s) ignorada(s))` : ''
+      success(`${importedCount} lote(s) importado(s) com sucesso!${dupMsg}`)
+    } else if (result.duplicates > 0) {
+      toastError(`Todos os ${result.duplicates} registro(s) já existem na base — nenhum importado.`)
+    } else {
+      toastError('Nenhum lote pôde ser importado. Verifique os erros abaixo.')
+    }
+  }
+
+  const resetImport = () => {
+    setImportStage('idle')
+    setImportFile(null)
+    setImportPreview(null)
+    setImported(0)
+    setDuplicates(0)
+    setImportErrors([])
+    if (importInputRef.current) importInputRef.current.value = ''
+  }
+
+  const closeImportar = () => {
+    setShowImportar(false)
+    resetImport()
+  }
 
   const handleSort = useCallback((key: SortKey) => {
     if (sortKey === key) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
@@ -161,7 +232,7 @@ export default function LotesPage() {
           <Button variant="secondary" size="md" onClick={() => exportToXlsx(sorted, 'lotes-filtrados.xlsx')}>
             <Download size={13} /> Exportar XLS
           </Button>
-          <Link to="/lotes/importar"><Button variant="secondary" size="md"><Upload size={13} /> Importar</Button></Link>
+          <Button variant="secondary" size="md" onClick={() => setShowImportar(true)}><Upload size={13} /> Importar</Button>
           <Link to="/lotes/novo"><Button variant="primary" size="md"><PlusCircle size={13} /> Novo Lote</Button></Link>
         </div>
       </div>
@@ -254,7 +325,7 @@ export default function LotesPage() {
           description="Importe sua planilha ou cadastre lotes manualmente."
           action={
             <div className="flex gap-3">
-              <Link to="/lotes/importar"><Button variant="primary" size="lg"><Upload size={13} /> Importar XLS</Button></Link>
+              <Button variant="primary" size="lg" onClick={() => setShowImportar(true)}><Upload size={13} /> Importar XLS</Button>
               <Link to="/lotes/novo"><Button variant="secondary" size="lg"><PlusCircle size={13} /> Novo Lote</Button></Link>
             </div>
           }
@@ -372,6 +443,200 @@ export default function LotesPage() {
         title="Excluir lote"
         message="Tem certeza que deseja excluir este lote? Esta ação não pode ser desfeita."
       />
+
+      {/* Modal Importar XLS */}
+      <Modal open={showImportar} onClose={closeImportar} title="Importar Planilha XLS" size="xl">
+        <div className="flex items-center gap-3 mb-6">
+          <Button variant="ghost" size="sm" onClick={closeImportar}><ArrowLeft size={14} /></Button>
+          <div>
+            <h1 className="text-xl font-bold text-[#1A1A1A]">Importar Planilha XLS</h1>
+            <p className="text-sm text-[#5A6A5E] mt-0.5">Importe lotes em massa a partir do arquivo Excel de gestão</p>
+          </div>
+          <div className="ml-auto">
+            <Button variant="secondary" size="md" onClick={downloadTemplate}>
+              <Download size={13} /> Baixar Modelo .xlsx
+            </Button>
+          </div>
+        </div>
+
+        {/* Step 1: Drop zone */}
+        {importStage === 'idle' && (
+          <div
+            onDrop={handleImportDrop}
+            onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
+            onDragLeave={() => setDragging(false)}
+            onClick={() => importInputRef.current?.click()}
+            className={cn(
+              'border-2 border-dashed rounded-xl p-16 flex flex-col items-center justify-center text-center cursor-pointer transition-all',
+              dragging
+                ? 'border-[#1B4D2E] bg-[#1B4D2E]/5'
+                : 'border-[#D4DAD6] hover:border-[#1B4D2E]/50 hover:bg-[#F0F4F0]'
+            )}
+          >
+            <input
+              ref={importInputRef}
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={handleImportFileInput}
+              className="hidden"
+            />
+            <div className={cn(
+              'w-16 h-16 rounded-full flex items-center justify-center mb-4 transition-colors',
+              dragging ? 'bg-[#1B4D2E]/15' : 'bg-[#EEF1EE]'
+            )}>
+              <Upload size={28} className={dragging ? 'text-[#1B4D2E]' : 'text-[#5A6A5E]'} />
+            </div>
+            <h3 className="text-base font-semibold text-[#1A1A1A] mb-1">
+              {dragging ? 'Solte o arquivo aqui' : 'Arraste o arquivo Excel'}
+            </h3>
+            <p className="text-sm text-[#5A6A5E] mb-4">ou clique para selecionar — .xlsx, .xls</p>
+            <div className="text-xs text-[#7A8A7E] bg-[#EEF1EE] rounded-lg px-4 py-2 max-w-sm">
+              Colunas esperadas: REGIÃO, PERITO, LOTE, ANALISTA, QTD ANALISADA, ANÁLISE, TIPO, FORMATO, ENVIO, ENTREGA, MÊS REF., VALOR DEVIDO, PAGO…
+            </div>
+          </div>
+        )}
+
+        {/* Step 2: Preview */}
+        {(importStage === 'preview' || importStage === 'importing') && importPreview && (
+          <div className="space-y-4">
+            {/* File info */}
+            <div className="flex items-center gap-3 bg-white border border-[#D4DAD6] rounded-lg px-4 py-3">
+              <FileSpreadsheet size={20} className="text-emerald-600 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium text-[#1A1A1A] truncate">{importFile?.name}</div>
+                <div className="text-xs text-[#5A6A5E]">{(importFile?.size ?? 0 / 1024).toFixed(0)} KB</div>
+              </div>
+              <Button variant="ghost" size="sm" onClick={resetImport}><X size={13} /></Button>
+            </div>
+
+            {/* Stats */}
+            <div className="flex gap-3 flex-wrap">
+              <div className={`flex items-center gap-2 rounded-lg px-3 py-2 border ${
+                importPreview.total === 0
+                  ? 'bg-amber-50 border-amber-200'
+                  : 'bg-[#F4F6F4] border-[#D4DAD6]'
+              }`}>
+                {importPreview.total === 0
+                  ? <AlertCircle size={14} className="text-amber-600" />
+                  : <CheckCircle size={14} className="text-emerald-600" />}
+                <span className={`text-sm ${importPreview.total === 0 ? 'text-amber-700' : 'text-[#1A1A1A]'}`}>
+                  {importPreview.total === 0 ? 'Nenhum registro encontrado' : `${importPreview.total} registros detectados`}
+                </span>
+              </div>
+              {importPreview.errors.length > 0 && (
+                <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                  <AlertCircle size={14} className="text-red-600" />
+                  <span className="text-sm text-red-600">{importPreview.errors.length} erro(s) de estrutura</span>
+                </div>
+              )}
+            </div>
+
+            {/* Errors */}
+            {importPreview.errors.length > 0 && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <h4 className="text-sm font-semibold text-red-600 mb-2">Avisos estruturais</h4>
+                <ul className="space-y-1">
+                  {importPreview.errors.map((e, i) => (
+                    <li key={i} className="text-xs text-red-500 flex gap-2">
+                      <span className="text-red-400">•</span> {e}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Preview table */}
+            <div>
+              <h3 className="text-sm font-semibold text-[#1A1A1A] mb-2">Pré-visualização (primeiras 5 linhas)</h3>
+              <div className="bg-white border border-[#D4DAD6] rounded-lg overflow-x-auto">
+                <table className="text-xs w-full">
+                  <thead>
+                    <tr className="border-b border-[#D4DAD6]">
+                      {importPreview.headers.map((h) => (
+                        <th key={h} className="px-3 py-2 text-left text-[10px] uppercase tracking-wide text-[#5A6A5E] font-semibold bg-[#F0F2F0] whitespace-nowrap">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {importPreview.rows.map((row, i) => (
+                      <tr key={i} className="border-b border-[#D4DAD6] last:border-0 hover:bg-[#F4F6F4]">
+                        {importPreview.headers.map((h) => (
+                          <td key={h} className="px-3 py-2 text-[#5A6A5E] whitespace-nowrap max-w-[120px] truncate">
+                            {String(row[h] ?? '—')}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="secondary" onClick={resetImport}>Cancelar</Button>
+              <Button
+                variant="primary"
+                size="lg"
+                onClick={handleImport}
+                disabled={importStage === 'importing' || importPreview.total === 0}
+              >
+                {importStage === 'importing' ? (
+                  <>
+                    <span className="inline-block w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Importando…
+                  </>
+                ) : (
+                  <><Upload size={14} /> Importar {importPreview.total} registro(s)</>
+                )}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 3: Done */}
+        {importStage === 'done' && (
+          <div className="bg-white border border-[#D4DAD6] rounded-xl p-10 flex flex-col items-center text-center">
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${imported > 0 ? 'bg-emerald-50' : 'bg-amber-50'}`}>
+              <CheckCircle size={32} className={imported > 0 ? 'text-emerald-600' : 'text-amber-600'} />
+            </div>
+            <h2 className="text-xl font-bold text-[#1A1A1A] mb-1">Importação concluída</h2>
+            <div className="flex flex-wrap justify-center gap-2 mb-6">
+              {imported > 0 && (
+                <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-emerald-100 border border-emerald-200 text-emerald-700 rounded-full px-3 py-1">
+                  <CheckCircle size={11} /> {imported} importado{imported !== 1 ? 's' : ''}
+                </span>
+              )}
+              {duplicates > 0 && (
+                <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-amber-100 border border-amber-200 text-amber-700 rounded-full px-3 py-1">
+                  ⊘ {duplicates} duplicata{duplicates !== 1 ? 's' : ''} ignorada{duplicates !== 1 ? 's' : ''}
+                </span>
+              )}
+              {importErrors.length > 0 && (
+                <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-red-100 border border-red-200 text-red-600 rounded-full px-3 py-1">
+                  <AlertCircle size={11} /> {importErrors.length} erro{importErrors.length !== 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
+
+            {importErrors.length > 0 && (
+              <div className="w-full bg-red-50 border border-red-200 rounded-lg p-4 mb-6 text-left">
+                <h4 className="text-sm font-semibold text-red-600 mb-2">Erros durante a importação</h4>
+                <ul className="space-y-1 max-h-32 overflow-y-auto">
+                  {importErrors.map((e, i) => (
+                    <li key={i} className="text-xs text-red-500">• {e}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <Button variant="secondary" onClick={resetImport}>Importar outro arquivo</Button>
+              <Button variant="primary" onClick={closeImportar}>Ver lotes importados</Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }
