@@ -9,6 +9,7 @@ import {
   DollarSign, TrendingUp, Clock, FileWarning,
   PlusCircle, Pencil, Trash2, FileText,
   Search, ChevronUp, ChevronDown, ChevronRight, ChevronsUpDown, X,
+  CheckCircle2,
 } from 'lucide-react'
 
 import { useCobrancasStore, selectPeritoNames } from '../../store/cobrancasStore'
@@ -418,6 +419,34 @@ export default function CobrancasPage() {
   function openNew() { setEditTarget(null); setModalOpen(true) }
   function openEdit(c: Cobranca) { setEditTarget(c); setModalOpen(true) }
 
+  async function markGroupRecebido(row: Extract<GroupedCobranca, { grouped: true }>) {
+    const today = new Date().toISOString().slice(0, 10)
+    const buildPayload = (c: Cobranca) => ({
+      perito:          c.perito,
+      cpfPerito:       c.cpfPerito,
+      regiao:          c.regiao,
+      mesRef:          c.mesRef,
+      dataEnvio:       c.dataEnvio,
+      valor:           c.valor,
+      tipo:            c.tipo,
+      recebido:        true,
+      dataRecebimento: c.dataRecebimento || today,
+      notaFiscal:      c.notaFiscal,
+      linkPdf:         c.linkPdf,
+    })
+
+    const [errComissao, errLote] = await Promise.all([
+      updateCobranca(row.comissao.id, buildPayload(row.comissao)),
+      updateCobranca(row.lote.id, buildPayload(row.lote)),
+    ])
+
+    if (errComissao || errLote) {
+      toastError(errComissao || errLote || 'Erro ao marcar como recebido.')
+      return
+    }
+    toastSuccess('Comissão e Lote marcados como recebidos!')
+  }
+
   async function handleDelete() {
     if (!deleteId) return
     await deleteCobranca(deleteId)
@@ -708,20 +737,37 @@ export default function CobrancasPage() {
                                     )}
                                   </div>
                                 </div>
-                                <div className="ml-auto flex items-end gap-1">
-                                  <button onClick={(e) => { e.stopPropagation(); openEdit(row.comissao) }} className="p-1 rounded text-[#5A6A5E] hover:text-[#1B4D2E] hover:bg-[#1B4D2E]/5 transition-colors" title="Editar Comissão"><Pencil size={13} /></button>
-                                  <button onClick={(e) => { e.stopPropagation(); setDeleteId(row.comissao.id) }} className="p-1 rounded text-[#5A6A5E] hover:text-red-600 hover:bg-red-50 transition-colors" title="Excluir Comissão"><Trash2 size={13} /></button>
-                                </div>
+                                {!row.recebido && (
+                                  <div className="ml-auto">
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); markGroupRecebido(row) }}
+                                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors"
+                                      title="Marcar os 2 como recebido(s)"
+                                    >
+                                      <CheckCircle2 size={13} /> Marcar os 2 como recebido(s)
+                                    </button>
+                                  </div>
+                                )}
                               </div>
-                              <div className="border-t border-[#E8EDE8] pt-2">
-                                <div className="flex gap-6 text-sm">
+                              <div className="border-t border-[#E8EDE8] pt-2 space-y-2">
+                                <div className="flex items-center justify-between flex-wrap gap-2">
                                   <div className="flex items-center gap-2">
                                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">Comissão</span>
                                     <span className="font-semibold text-[#1B4D2E]">{formatCurrency(row.comissao.valor)}</span>
                                   </div>
+                                  <div className="flex items-center gap-1">
+                                    <button onClick={(e) => { e.stopPropagation(); openEdit(row.comissao) }} className="p-1 rounded text-[#5A6A5E] hover:text-[#1B4D2E] hover:bg-[#1B4D2E]/5 transition-colors" title="Editar Comissão"><Pencil size={13} /></button>
+                                    <button onClick={(e) => { e.stopPropagation(); setDeleteId(row.comissao.id) }} className="p-1 rounded text-[#5A6A5E] hover:text-red-600 hover:bg-red-50 transition-colors" title="Excluir Comissão"><Trash2 size={13} /></button>
+                                  </div>
+                                </div>
+                                <div className="flex items-center justify-between flex-wrap gap-2">
                                   <div className="flex items-center gap-2">
                                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">Lote</span>
                                     <span className="font-semibold text-[#1B4D2E]">{formatCurrency(row.lote.valor)}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <button onClick={(e) => { e.stopPropagation(); openEdit(row.lote) }} className="p-1 rounded text-[#5A6A5E] hover:text-[#1B4D2E] hover:bg-[#1B4D2E]/5 transition-colors" title="Editar Lote"><Pencil size={13} /></button>
+                                    <button onClick={(e) => { e.stopPropagation(); setDeleteId(row.lote.id) }} className="p-1 rounded text-[#5A6A5E] hover:text-red-600 hover:bg-red-50 transition-colors" title="Excluir Lote"><Trash2 size={13} /></button>
                                   </div>
                                 </div>
                               </div>
