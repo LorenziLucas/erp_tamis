@@ -7,7 +7,7 @@ import {
 import { Bar, Doughnut, Line, Chart } from 'react-chartjs-2'
 import { Link } from 'react-router-dom'
 import {
-  PlusCircle, Upload, AlertTriangle, TrendingUp, Info,
+  AlertTriangle, TrendingUp, Info,
   FileText, Scale, Clock, Users, Building2, ChevronDown, X,
 } from 'lucide-react'
 
@@ -17,7 +17,6 @@ import {
 } from '../store/lotesStore'
 import { KpiCard } from '../components/ui/Card'
 import { ChartCard } from '../components/dashboard/ChartCard'
-import { Button } from '../components/ui/Button'
 import { TipoBadge, PagoBadge } from '../components/ui/Badge'
 import { EmptyState } from '../components/ui/EmptyState'
 import { cn, formatCompact, formatCompactNum, formatCurrency, formatMonthYear } from '../lib/utils'
@@ -497,13 +496,7 @@ export default function Dashboard() {
         </div>
         <EmptyState
           title="Nenhum lote cadastrado"
-          description="Importe sua planilha Excel ou cadastre lotes manualmente para ver as métricas aqui."
-          action={
-            <div className="flex gap-3">
-              <Link to="/lotes?importar=1"><Button variant="primary" size="lg"><Upload size={15} /> Importar XLS</Button></Link>
-              <Link to="/lotes/novo"><Button variant="secondary" size="lg"><PlusCircle size={15} /> Novo Lote</Button></Link>
-            </div>
-          }
+          description="Importe sua planilha Excel ou cadastre lotes manualmente em Lotes para ver as métricas aqui."
         />
       </div>
     )
@@ -734,15 +727,9 @@ export default function Dashboard() {
   return (
     <div className="p-6 space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-[#1A1A1A]">Dashboard</h1>
-          <p className="text-sm text-[#5A6A5E] mt-0.5">Visão geral — {lotes.length} lotes cadastrados</p>
-        </div>
-        <div className="flex gap-2">
-          <Link to="/lotes?importar=1"><Button variant="secondary" size="md"><Upload size={13} /> Importar XLS</Button></Link>
-          <Link to="/lotes/novo"><Button variant="primary" size="md"><PlusCircle size={13} /> Novo Lote</Button></Link>
-        </div>
+      <div>
+        <h1 className="text-xl font-bold text-[#1A1A1A]">Dashboard</h1>
+        <p className="text-sm text-[#5A6A5E] mt-0.5">Visão geral — {lotes.length} lotes cadastrados</p>
       </div>
 
       {/* Ticker */}

@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import {
   Search, PlusCircle, Upload, Download, X,
   ChevronUp, ChevronDown, Pencil, Trash2, ChevronsUpDown,
@@ -53,7 +53,6 @@ export default function LotesPage() {
   const addLotes    = useLotesStore((s) => s.addLotes)
   const loading     = useLotesStore((s) => s.loading)
   const { success, error: toastError } = useToast()
-  const [searchParams, setSearchParams] = useSearchParams()
 
   useEffect(() => { fetchLotes() }, [fetchLotes])
 
@@ -79,13 +78,6 @@ export default function LotesPage() {
   const [imported,        setImported]        = useState(0)
   const [duplicates,      setDuplicates]      = useState(0)
   const [importErrors,    setImportErrors]    = useState<string[]>([])
-
-  useEffect(() => {
-    if (searchParams.get('importar') === '1') {
-      setShowImportar(true)
-      setSearchParams((p) => { p.delete('importar'); return p }, { replace: true })
-    }
-  }, [searchParams, setSearchParams])
 
   const processFile = useCallback(async (f: File) => {
     setImportFile(f)
