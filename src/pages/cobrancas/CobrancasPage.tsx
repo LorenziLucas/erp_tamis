@@ -712,30 +712,18 @@ export default function CobrancasPage() {
                         <tr className="bg-[#F8FAF8]">
                           <td colSpan={10} className="px-6 py-3">
                             <div className="ml-4 pl-4 border-l-2 border-[#D4DAD6]">
-                              <div className="flex items-center gap-6 mb-3 flex-wrap">
-                                <div>
-                                  <p className="text-[10px] font-semibold text-[#5A6A5E] uppercase tracking-wide">Envio</p>
-                                  <p className="text-sm font-medium text-[#1A1A1A] mt-0.5">{formatDate(row.dataEnvio ?? '')}</p>
+                              <div className="flex items-center gap-6 flex-wrap">
+                                <div className="flex items-center gap-2">
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">Comissão</span>
+                                  <span className="font-semibold text-[#1B4D2E]">{formatCurrency(row.comissao.valor)}</span>
+                                  <button onClick={(e) => { e.stopPropagation(); openEdit(row.comissao) }} className="p-1 rounded text-[#5A6A5E] hover:text-[#1B4D2E] hover:bg-[#1B4D2E]/5 transition-colors" title="Editar Comissão"><Pencil size={13} /></button>
+                                  <button onClick={(e) => { e.stopPropagation(); setDeleteId(row.comissao.id) }} className="p-1 rounded text-[#5A6A5E] hover:text-red-600 hover:bg-red-50 transition-colors" title="Excluir Comissão"><Trash2 size={13} /></button>
                                 </div>
-                                <div>
-                                  <p className="text-[10px] font-semibold text-[#5A6A5E] uppercase tracking-wide">Nota fiscal</p>
-                                  <div className="mt-1">
-                                    <span className={cn('inline-flex items-center px-2 py-0.5 rounded text-xs font-medium',
-                                      row.notaFiscal === 'Emitida' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                        : 'bg-red-50 text-red-700 border border-red-200')}>
-                                      {row.notaFiscal === 'Emitida' ? 'Emitida' : 'Pendente'}
-                                    </span>
-                                  </div>
-                                </div>
-                                <div>
-                                  <p className="text-[10px] font-semibold text-[#5A6A5E] uppercase tracking-wide">PDF</p>
-                                  <div className="mt-1">
-                                    {row.linkPdf ? (
-                                      <a href={row.linkPdf} target="_blank" rel="noopener noreferrer" className="text-[#1B4D2E] hover:text-[#2D7A47] transition-colors"><FileText size={15} /></a>
-                                    ) : (
-                                      <span className="text-[#D4DAD6]"><FileText size={15} /></span>
-                                    )}
-                                  </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">Lote</span>
+                                  <span className="font-semibold text-[#1B4D2E]">{formatCurrency(row.lote.valor)}</span>
+                                  <button onClick={(e) => { e.stopPropagation(); openEdit(row.lote) }} className="p-1 rounded text-[#5A6A5E] hover:text-[#1B4D2E] hover:bg-[#1B4D2E]/5 transition-colors" title="Editar Lote"><Pencil size={13} /></button>
+                                  <button onClick={(e) => { e.stopPropagation(); setDeleteId(row.lote.id) }} className="p-1 rounded text-[#5A6A5E] hover:text-red-600 hover:bg-red-50 transition-colors" title="Excluir Lote"><Trash2 size={13} /></button>
                                 </div>
                                 {!row.recebido && (
                                   <div className="ml-auto">
@@ -748,28 +736,6 @@ export default function CobrancasPage() {
                                     </button>
                                   </div>
                                 )}
-                              </div>
-                              <div className="border-t border-[#E8EDE8] pt-2 space-y-2">
-                                <div className="flex items-center justify-between flex-wrap gap-2">
-                                  <div className="flex items-center gap-2">
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">Comissão</span>
-                                    <span className="font-semibold text-[#1B4D2E]">{formatCurrency(row.comissao.valor)}</span>
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    <button onClick={(e) => { e.stopPropagation(); openEdit(row.comissao) }} className="p-1 rounded text-[#5A6A5E] hover:text-[#1B4D2E] hover:bg-[#1B4D2E]/5 transition-colors" title="Editar Comissão"><Pencil size={13} /></button>
-                                    <button onClick={(e) => { e.stopPropagation(); setDeleteId(row.comissao.id) }} className="p-1 rounded text-[#5A6A5E] hover:text-red-600 hover:bg-red-50 transition-colors" title="Excluir Comissão"><Trash2 size={13} /></button>
-                                  </div>
-                                </div>
-                                <div className="flex items-center justify-between flex-wrap gap-2">
-                                  <div className="flex items-center gap-2">
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">Lote</span>
-                                    <span className="font-semibold text-[#1B4D2E]">{formatCurrency(row.lote.valor)}</span>
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    <button onClick={(e) => { e.stopPropagation(); openEdit(row.lote) }} className="p-1 rounded text-[#5A6A5E] hover:text-[#1B4D2E] hover:bg-[#1B4D2E]/5 transition-colors" title="Editar Lote"><Pencil size={13} /></button>
-                                    <button onClick={(e) => { e.stopPropagation(); setDeleteId(row.lote.id) }} className="p-1 rounded text-[#5A6A5E] hover:text-red-600 hover:bg-red-50 transition-colors" title="Excluir Lote"><Trash2 size={13} /></button>
-                                  </div>
-                                </div>
                               </div>
                             </div>
                           </td>
