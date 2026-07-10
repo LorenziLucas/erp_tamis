@@ -106,6 +106,16 @@ export default function LotesPage() {
     [sorted],
   )
 
+  const totalQtdAnalisada = useMemo(
+    () => sorted.reduce((sum, l) => sum + l.qtdAnalisada, 0),
+    [sorted],
+  )
+
+  const totalQtdP = useMemo(
+    () => sorted.reduce((sum, l) => sum + l.qtdP, 0),
+    [sorted],
+  )
+
   const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
   const paginated  = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
@@ -306,13 +316,21 @@ export default function LotesPage() {
               </tbody>
               <tfoot>
                 <tr className="border-t-2 border-[#D4DAD6] bg-[#F0F2F0]">
-                  <td className="px-3 py-2 text-[11px] text-[#5A6A5E] font-semibold uppercase tracking-wide" colSpan={9}>
+                  <td className="px-3 py-2 text-[11px] text-[#5A6A5E] font-semibold uppercase tracking-wide" colSpan={7}>
                     Total — {sorted.length} lote{sorted.length !== 1 ? 's' : ''}
                   </td>
+                  <td className="px-3 py-2 text-right text-[11px] font-bold text-[#5A6A5E]">
+                    {totalQtdAnalisada.toLocaleString('pt-BR')}
+                  </td>
+                  <td className="px-3 py-2" />
                   <td className="px-3 py-2 text-right text-sm font-bold text-emerald-600 whitespace-nowrap">
                     {formatCurrency(totalValor)}
                   </td>
-                  <td colSpan={3} />
+                  <td className="px-3 py-2" />
+                  <td className="px-3 py-2 text-center text-[11px] font-bold text-[#5A6A5E]">
+                    {totalQtdP.toLocaleString('pt-BR')}
+                  </td>
+                  <td className="px-3 py-2" />
                 </tr>
               </tfoot>
             </table>
