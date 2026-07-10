@@ -467,14 +467,9 @@ export default function CobrancasPage() {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-[#1A1A1A]">Cobranças</h1>
-          <p className="text-sm text-[#5A6A5E] mt-0.5">Gestão de cobranças a peritos</p>
-        </div>
-        <Button variant="primary" onClick={openNew}>
-          <PlusCircle size={14} /> Nova Cobrança
-        </Button>
+      <div>
+        <h1 className="text-xl font-bold text-[#1A1A1A]">Cobranças</h1>
+        <p className="text-sm text-[#5A6A5E] mt-0.5">Gestão de cobranças a peritos</p>
       </div>
 
       {/* Filters */}
@@ -554,6 +549,13 @@ export default function CobrancasPage() {
           </ChartCard>
         </div>
       )}
+
+      {/* Nova Cobrança */}
+      <div className="flex justify-end">
+        <Button variant="primary" onClick={openNew}>
+          <PlusCircle size={14} /> Nova Cobrança
+        </Button>
+      </div>
 
       {/* Search */}
       <div className="relative">
