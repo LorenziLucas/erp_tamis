@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Search, ChevronDown, ChevronRight as ArrowRight, X, ArrowRightCircle, Plus, Trash2 } from 'lucide-react'
+import { Search, ChevronDown, ChevronRight as ArrowRight, X, ArrowRightCircle, Plus, Trash2, Pencil } from 'lucide-react'
 import { useBoardPeritosStore } from '../../store/boardPeritosStore'
 import { useBoardLotesStore } from '../../store/boardLotesStore'
 import { useAnalistasStore } from '../../store/analistasStore'
@@ -26,6 +26,7 @@ function regionBadgeClasses(regiao: string): string {
   if (token === 'TRT4') return 'bg-[#EAF3ED] text-[#1B4D2E]'
   if (token === 'TRT6') return 'bg-amber-50 text-amber-700'
   if (token === 'TRT1') return 'bg-violet-50 text-violet-700'
+  if (token === 'TRT12') return 'bg-[#E6F1FB] text-[#0C447C]'
   return 'bg-[#F4F6F4] text-[#5A6A5E]'
 }
 
@@ -165,6 +166,13 @@ function ChecklistLotes({ boardPeritoId }: { boardPeritoId: string }) {
   const [formato, setFormato] = useState('')
   const [adding, setAdding] = useState(false)
 
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editNumero, setEditNumero] = useState('')
+  const [editMesAno, setEditMesAno] = useState('')
+  const [editTipo, setEditTipo] = useState('')
+  const [editFormato, setEditFormato] = useState('')
+  const [savingEdit, setSavingEdit] = useState(false)
+
   useEffect(() => {
     fetchLotes(boardPeritoId)
   }, [boardPeritoId, fetchLotes])
@@ -190,6 +198,41 @@ function ChecklistLotes({ boardPeritoId }: { boardPeritoId: string }) {
       success('Item removido do checklist')
     } catch (err) {
       toastError(err instanceof Error ? err.message : 'Erro ao excluir item')
+    }
+  }
+
+  function startEdit(lote: BoardLote) {
+    setEditingId(lote.id)
+    setEditNumero(String(lote.numero))
+    setEditMesAno(lote.mesRef ? lote.mesRef.slice(0, 7) : '')
+    setEditTipo(lote.tipo ?? '')
+    setEditFormato(lote.formato ?? '')
+  }
+
+  function cancelEdit() {
+    setEditingId(null)
+  }
+
+  async function handleSaveEdit(lote: BoardLote) {
+    const numero = Number(editNumero)
+    if (!editNumero || !Number.isFinite(numero) || !Number.isInteger(numero) || numero <= 0) {
+      toastError('Informe um número de lote válido')
+      return
+    }
+    setSavingEdit(true)
+    try {
+      await updateLote(boardPeritoId, lote.id, {
+        numero,
+        mesRef: editMesAno ? `${editMesAno}-01` : null,
+        tipo:    editTipo || null,
+        formato: editFormato || null,
+      })
+      success('Lote atualizado')
+      setEditingId(null)
+    } catch (err) {
+      toastError(err instanceof Error ? err.message : 'Erro ao atualizar lote')
+    } finally {
+      setSavingEdit(false)
     }
   }
 
@@ -230,23 +273,69 @@ function ChecklistLotes({ boardPeritoId }: { boardPeritoId: string }) {
       ) : (
         <div className="border border-[#D4DAD6] rounded-lg divide-y divide-[#EEF1EE]">
           {lotes.map((lote) => (
-            <div key={lote.id} className="flex items-center gap-2.5 px-3 py-2">
-              <input
-                type="checkbox"
-                checked={lote.entregue}
-                onChange={() => handleToggle(lote)}
-                className="w-4 h-4 accent-[#1B4D2E] shrink-0 cursor-pointer"
-              />
-              <span className={cn('flex-1 text-sm', lote.entregue ? 'text-[#5A6A5E] line-through' : 'text-[#1A1A1A]')}>
-                Nº{lote.numero} · {formatMesAno(lote.mesRef)} · {lote.tipo ?? '—'} - {lote.formato ?? '—'}
-              </span>
-              <button
-                onClick={() => handleDelete(lote)}
-                className="p-1 rounded text-[#9AA4A0] hover:text-red-600 hover:bg-red-50 transition-colors shrink-0"
-                title="Excluir item"
-              >
-                <Trash2 size={13} />
-              </button>
+            <div key={lote.id} className="px-3 py-2">
+              {editingId === lote.id ? (
+                <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input
+                      type="number"
+                      min={1}
+                      placeholder="Nº do lote"
+                      value={editNumero}
+                      onChange={(e) => setEditNumero(e.target.value)}
+                    />
+                    <Input
+                      type="month"
+                      value={editMesAno}
+                      onChange={(e) => setEditMesAno(e.target.value)}
+                    />
+                    <Select value={editTipo} onChange={(e) => setEditTipo(e.target.value)}>
+                      <option value="">Tipo — (opcional)</option>
+                      {TIPO_OPTIONS.map((t) => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </Select>
+                    <Select value={editFormato} onChange={(e) => setEditFormato(e.target.value)}>
+                      <option value="">Formato — (opcional)</option>
+                      {FORMATO_OPTIONS.map((f) => (
+                        <option key={f} value={f}>{f}</option>
+                      ))}
+                    </Select>
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button type="button" variant="secondary" size="sm" onClick={cancelEdit}>Cancelar</Button>
+                    <Button type="button" variant="primary" size="sm" disabled={savingEdit} onClick={() => handleSaveEdit(lote)}>
+                      {savingEdit ? 'Salvando…' : 'Salvar'}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2.5">
+                  <input
+                    type="checkbox"
+                    checked={lote.entregue}
+                    onChange={() => handleToggle(lote)}
+                    className="w-4 h-4 accent-[#1B4D2E] shrink-0 cursor-pointer"
+                  />
+                  <span className={cn('flex-1 text-sm', lote.entregue ? 'text-[#5A6A5E] line-through' : 'text-[#1A1A1A]')}>
+                    {lote.numero}º LOTE · {formatMesAno(lote.mesRef)} · {lote.tipo ?? '—'} - {lote.formato ?? '—'}
+                  </span>
+                  <button
+                    onClick={() => startEdit(lote)}
+                    className="p-1 rounded text-[#9AA4A0] hover:text-[#1B4D2E] hover:bg-[#1B4D2E]/10 transition-colors shrink-0"
+                    title="Editar item"
+                  >
+                    <Pencil size={13} />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(lote)}
+                    className="p-1 rounded text-[#9AA4A0] hover:text-red-600 hover:bg-red-50 transition-colors shrink-0"
+                    title="Excluir item"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -437,27 +526,9 @@ function DetailModal({
           </div>
         </div>
 
-        <FormField label="Mover para">
-          <Select
-            value={perito.status}
-            disabled={statusChanging}
-            onChange={(e) => handleStatusChange(e.target.value as BoardStatus)}
-          >
-            {BOARD_STATUS.map((s) => (
-              <option key={s.value} value={s.value}>{s.label}</option>
-            ))}
-          </Select>
-        </FormField>
+        <AnalistasVinculados boardPeritoId={perito.id} />
 
         <div className="border-t border-[#D4DAD6] pt-5">
-          <ChecklistLotes boardPeritoId={perito.id} />
-        </div>
-
-        <div className="border-t border-[#D4DAD6] pt-5">
-          <AnalistasVinculados boardPeritoId={perito.id} />
-        </div>
-
-        <div className="border-t border-[#D4DAD6] pt-5 space-y-3">
           <FormField label="Região">
             <Select value={regiao} onChange={(e) => setRegiao(e.target.value)}>
               <option value="">Selecione a região…</option>
@@ -466,13 +537,31 @@ function DetailModal({
               ))}
             </Select>
           </FormField>
+        </div>
 
-          <div className="flex justify-end gap-2 pt-1">
-            <Button variant="secondary" onClick={onClose}>Fechar</Button>
-            <Button variant="primary" onClick={handleSaveRegiao} disabled={saving}>
-              {saving ? 'Salvando…' : 'Salvar'}
-            </Button>
-          </div>
+        <div className="border-t border-[#D4DAD6] pt-5">
+          <ChecklistLotes boardPeritoId={perito.id} />
+        </div>
+
+        <div className="border-t border-[#D4DAD6] pt-5">
+          <FormField label="Mover para">
+            <Select
+              value={perito.status}
+              disabled={statusChanging}
+              onChange={(e) => handleStatusChange(e.target.value as BoardStatus)}
+            >
+              {BOARD_STATUS.map((s) => (
+                <option key={s.value} value={s.value}>{s.label}</option>
+              ))}
+            </Select>
+          </FormField>
+        </div>
+
+        <div className="border-t border-[#D4DAD6] pt-5 flex justify-end gap-2">
+          <Button variant="secondary" onClick={onClose}>Fechar</Button>
+          <Button variant="primary" onClick={handleSaveRegiao} disabled={saving}>
+            {saving ? 'Salvando…' : 'Salvar'}
+          </Button>
         </div>
       </div>
     </Modal>
