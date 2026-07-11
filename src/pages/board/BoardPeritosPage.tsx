@@ -9,6 +9,7 @@ import { Button } from '../../components/ui/Button'
 import { Input, Select, FormField } from '../../components/ui/Input'
 import { BOARD_STATUS, TIPO_OPTIONS, FORMATO_OPTIONS } from '../../types/board'
 import type { BoardPerito, BoardStatus, BoardLote } from '../../types/board'
+import { TRT_OPTIONS } from '../../types'
 import { cn } from '../../lib/utils'
 
 const STATUS_COLORS: Record<BoardStatus, string> = {
@@ -77,6 +78,10 @@ function ProgressBar({ entregue, total }: { entregue: number; total: number }) {
 
 function PeritoRow({ perito, onOpen }: { perito: BoardPerito; onOpen: () => void }) {
   const { entregue, total } = useChecklistProgress(perito.id)
+  const analistasVinculados = useBoardPeritosStore((s) => s.analistasByPerito[perito.id])
+  const analistasLabel = analistasVinculados && analistasVinculados.length > 0
+    ? analistasVinculados.map((a) => a.nome.split(' ')[0]).join(', ')
+    : '—'
 
   return (
     <button
@@ -92,11 +97,13 @@ function PeritoRow({ perito, onOpen }: { perito: BoardPerito; onOpen: () => void
       <span className={cn('px-2 py-0.5 rounded-full text-[11px] font-medium shrink-0', regionBadgeClasses(perito.regiao))}>
         {perito.regiao}
       </span>
-      <span className="text-xs text-[#5A6A5E] w-32 shrink-0 truncate">{perito.analista ?? '—'}</span>
+      <span className="text-xs text-[#5A6A5E] w-32 shrink-0 truncate" title={analistasVinculados?.map((a) => a.nome).join(', ')}>
+        {analistasLabel}
+      </span>
       <div className="flex-1 flex items-center justify-end gap-2 min-w-0">
         <ProgressBar entregue={entregue} total={total} />
-        <span className="text-xs text-[#5A6A5E] w-14 text-right shrink-0">
-          {entregue}/{total}
+        <span className="text-xs font-medium text-[#5A6A5E] bg-[#F4F6F4] px-2 py-0.5 rounded-full shrink-0">
+          {entregue}/{total} lotes
         </span>
         <ArrowRightCircle size={15} className="text-[#9AA4A0] shrink-0" />
       </div>
@@ -397,13 +404,13 @@ function DetailModal({
   }
 
   async function handleSaveRegiao() {
-    if (!regiao.trim()) {
-      toastError('Região obrigatória')
+    if (!regiao) {
+      toastError('Selecione uma região')
       return
     }
     setSaving(true)
     try {
-      await updateItem(perito.id, { regiao: regiao.trim() })
+      await updateItem(perito.id, { regiao })
       success('Região atualizada')
     } catch (err) {
       toastError(err instanceof Error ? err.message : 'Erro ao salvar região')
@@ -452,10 +459,12 @@ function DetailModal({
 
         <div className="border-t border-[#D4DAD6] pt-5 space-y-3">
           <FormField label="Região">
-            <Input
-              value={regiao}
-              onChange={(e) => setRegiao(e.target.value)}
-            />
+            <Select value={regiao} onChange={(e) => setRegiao(e.target.value)}>
+              <option value="">Selecione a região…</option>
+              {TRT_OPTIONS.map((t) => (
+                <option key={t.value} value={t.label}>{t.label}</option>
+              ))}
+            </Select>
           </FormField>
 
           <div className="flex justify-end gap-2 pt-1">
@@ -476,6 +485,8 @@ export default function BoardPeritosPage() {
   const { items, loading, error, fetchBoard } = useBoardPeritosStore()
   const lotesByPerito = useBoardLotesStore((s) => s.lotesByPerito)
   const fetchLotes = useBoardLotesStore((s) => s.fetchLotes)
+  const analistasByPerito = useBoardPeritosStore((s) => s.analistasByPerito)
+  const fetchAnalistasDoPerito = useBoardPeritosStore((s) => s.fetchAnalistasDoPerito)
   const { analistas, fetchAnalistas } = useAnalistasStore()
 
   const [query, setQuery] = useState('')
@@ -496,6 +507,12 @@ export default function BoardPeritosPage() {
       if (!(p.id in lotesByPerito)) fetchLotes(p.id)
     })
   }, [items, lotesByPerito, fetchLotes])
+
+  useEffect(() => {
+    items.forEach((p) => {
+      if (!(p.id in analistasByPerito)) fetchAnalistasDoPerito(p.id)
+    })
+  }, [items, analistasByPerito, fetchAnalistasDoPerito])
 
   const regions = useMemo(() => {
     const set = new Set(items.map((i) => i.regiao).filter(Boolean))
