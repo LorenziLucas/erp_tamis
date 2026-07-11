@@ -45,13 +45,20 @@ function formatMesAno(mesRef: string | null): string {
 
 // ── Progresso do checklist ────────────────────────────────────────────────────
 
-function useChecklistProgress(boardPeritoId: string) {
+function useChecklistProgress(boardPeritoId: string, mesAlvo: string | null = null) {
   const lotes = useBoardLotesStore((s) => s.lotesByPerito[boardPeritoId])
   const list = lotes ?? []
-  const total = list.length
-  const entregue = list.filter((l) => l.entregue).length
+  const relevantes = mesAlvo ? list.filter((l) => l.mesRef?.slice(0, 7) === mesAlvo) : list
+  const total = relevantes.length
+  const entregue = relevantes.filter((l) => l.entregue).length
   return { entregue, total }
 }
+
+const MES_FILTRO_OPTIONS: { value: 'atual' | 'proximo' | 'todos'; label: string }[] = [
+  { value: 'atual',   label: 'Mês atual' },
+  { value: 'proximo', label: 'Próximo mês' },
+  { value: 'todos',   label: 'Todos' },
+]
 
 // ── KPI ────────────────────────────────────────────────────────────────────────
 
@@ -77,8 +84,8 @@ function ProgressBar({ entregue, total }: { entregue: number; total: number }) {
 
 // ── Linha de perito ──────────────────────────────────────────────────────────────
 
-function PeritoRow({ perito, onOpen }: { perito: BoardPerito; onOpen: () => void }) {
-  const { entregue, total } = useChecklistProgress(perito.id)
+function PeritoRow({ perito, mesAlvo, onOpen }: { perito: BoardPerito; mesAlvo: string | null; onOpen: () => void }) {
+  const { entregue, total } = useChecklistProgress(perito.id, mesAlvo)
   const analistasVinculados = useBoardPeritosStore((s) => s.analistasByPerito[perito.id])
   const analistasLabel = analistasVinculados && analistasVinculados.length > 0
     ? analistasVinculados.map((a) => a.nome.split(' ')[0]).join(', ')
@@ -119,6 +126,7 @@ function StatusSection({
   label,
   items,
   collapsed,
+  mesAlvo,
   onToggle,
   onOpenPerito,
 }: {
@@ -126,6 +134,7 @@ function StatusSection({
   label: string
   items: BoardPerito[]
   collapsed: boolean
+  mesAlvo: string | null
   onToggle: () => void
   onOpenPerito: (id: string) => void
 }) {
@@ -145,7 +154,7 @@ function StatusSection({
       {!collapsed && items.length > 0 && (
         <div>
           {items.map((p) => (
-            <PeritoRow key={p.id} perito={p} onOpen={() => onOpenPerito(p.id)} />
+            <PeritoRow key={p.id} perito={p} mesAlvo={mesAlvo} onOpen={() => onOpenPerito(p.id)} />
           ))}
         </div>
       )}
@@ -582,6 +591,7 @@ export default function BoardPeritosPage() {
   const [activeRegions, setActiveRegions] = useState<Set<string>>(new Set())
   const [collapsedStatuses, setCollapsedStatuses] = useState<Set<BoardStatus>>(new Set())
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [mesFiltro, setMesFiltro] = useState<'atual' | 'proximo' | 'todos'>('todos')
 
   useEffect(() => {
     fetchBoard()
@@ -608,14 +618,31 @@ export default function BoardPeritosPage() {
     return Array.from(set).sort()
   }, [items])
 
+  const { mesAtual, mesProximo } = useMemo(() => {
+    const now = new Date()
+    const ano = now.getFullYear()
+    const mes = now.getMonth()
+    const proxima = new Date(ano, mes + 1, 1)
+    return {
+      mesAtual:   `${ano}-${String(mes + 1).padStart(2, '0')}`,
+      mesProximo: `${proxima.getFullYear()}-${String(proxima.getMonth() + 1).padStart(2, '0')}`,
+    }
+  }, [])
+
+  const mesAlvo = mesFiltro === 'atual' ? mesAtual : mesFiltro === 'proximo' ? mesProximo : null
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return items.filter((i) => {
       if (activeRegions.size > 0 && !activeRegions.has(i.regiao)) return false
       if (q && !i.nome.toLowerCase().includes(q)) return false
+      if (mesAlvo) {
+        const lotes = lotesByPerito[i.id] ?? []
+        if (!lotes.some((l) => l.mesRef?.slice(0, 7) === mesAlvo)) return false
+      }
       return true
     })
-  }, [items, query, activeRegions])
+  }, [items, query, activeRegions, mesAlvo, lotesByPerito])
 
   const grouped = useMemo(() => {
     return BOARD_STATUS.map((s) => ({
@@ -626,12 +653,29 @@ export default function BoardPeritosPage() {
   }, [filtered])
 
   const kpis = useMemo(() => {
-    const total = items.length
-    const emAnalise = items.filter((i) => i.status === 'analise_1' || i.status === 'analise_2').length
-    const entregueTotal = items.reduce((sum, i) => sum + i.entregue, 0)
-    const pendenteTotal = items.reduce((sum, i) => sum + Math.max(i.provisionado - i.entregue, 0), 0)
-    return { total, emAnalise, entregueTotal, pendenteTotal }
-  }, [items])
+    const peritosComLoteNoMes = new Set<string>()
+    let totalLotes = 0
+    let entregueLotes = 0
+
+    items.forEach((p) => {
+      const lotes = lotesByPerito[p.id] ?? []
+      const relevantes = mesAlvo ? lotes.filter((l) => l.mesRef?.slice(0, 7) === mesAlvo) : lotes
+      if (relevantes.length > 0) peritosComLoteNoMes.add(p.id)
+      totalLotes += relevantes.length
+      entregueLotes += relevantes.filter((l) => l.entregue).length
+    })
+
+    const emAnalise = items.filter((p) =>
+      (p.status === 'analise_1' || p.status === 'analise_2') && (!mesAlvo || peritosComLoteNoMes.has(p.id)),
+    ).length
+
+    return {
+      total:         totalLotes,
+      emAnalise,
+      entregueTotal: entregueLotes,
+      pendenteTotal: totalLotes - entregueLotes,
+    }
+  }, [items, lotesByPerito, mesAlvo])
 
   const selected = useMemo(() => items.find((i) => i.id === selectedId) ?? null, [items, selectedId])
 
@@ -698,6 +742,23 @@ export default function BoardPeritosPage() {
           )}
         </div>
 
+        <div className="flex flex-wrap items-center gap-1.5">
+          {MES_FILTRO_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setMesFiltro(opt.value)}
+              className={cn(
+                'px-2.5 py-1 rounded-full text-xs font-medium border transition-colors',
+                mesFiltro === opt.value
+                  ? 'bg-[#1B4D2E] text-white border-[#1B4D2E]'
+                  : 'bg-white text-[#5A6A5E] border-[#D4DAD6] hover:border-[#1B4D2E]/40',
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
         {regions.length > 0 && (
           <div className="flex flex-wrap items-center gap-1.5">
             {regions.map((regiao) => {
@@ -736,6 +797,7 @@ export default function BoardPeritosPage() {
               label={g.label}
               items={g.items}
               collapsed={collapsedStatuses.has(g.status)}
+              mesAlvo={mesAlvo}
               onToggle={() => toggleSection(g.status)}
               onOpenPerito={setSelectedId}
             />
