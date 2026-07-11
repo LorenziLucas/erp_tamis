@@ -40,3 +40,14 @@ export interface BoardLote {
   entregue: boolean
   ordem: number
 }
+
+export interface BoardComentario {
+  id: string
+  boardPeritoId: string
+  autorId: string
+  autorEmail: string | null
+  texto: string
+  mencionados: string[]
+  createdAt: string
+  updatedAt: string
+}

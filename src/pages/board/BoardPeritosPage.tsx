@@ -3,12 +3,14 @@ import { Search, ChevronDown, ChevronRight as ArrowRight, X, ArrowRightCircle, P
 import { useBoardPeritosStore } from '../../store/boardPeritosStore'
 import { useBoardLotesStore } from '../../store/boardLotesStore'
 import { useAnalistasStore } from '../../store/analistasStore'
+import { useBoardComentariosStore } from '../../store/boardComentariosStore'
+import { useAuth } from '../../contexts/AuthContext'
 import { useToast } from '../../components/ui/Toast'
 import { Modal } from '../../components/ui/Modal'
 import { Button } from '../../components/ui/Button'
-import { Input, Select, FormField } from '../../components/ui/Input'
+import { Input, Select, FormField, Textarea } from '../../components/ui/Input'
 import { BOARD_STATUS, TIPO_OPTIONS, FORMATO_OPTIONS } from '../../types/board'
-import type { BoardPerito, BoardStatus, BoardLote } from '../../types/board'
+import type { BoardPerito, BoardStatus, BoardLote, BoardComentario } from '../../types/board'
 import { TRT_OPTIONS } from '../../types'
 import { cn } from '../../lib/utils'
 import VisaoPorMes from './VisaoPorMes'
@@ -42,6 +44,26 @@ function formatMesAno(mesRef: string | null): string {
   if (!mesRef) return '—'
   const [ano, mes] = mesRef.split('-')
   return `${mes}/${ano}`
+}
+
+function initialsFromEmail(email: string | null): string {
+  if (!email) return '?'
+  const local = email.split('@')[0].replace(/[._-]+/g, ' ')
+  return initials(local)
+}
+
+function formatDataHora(iso: string): string {
+  return new Date(iso).toLocaleString('pt-BR', {
+    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
+  })
+}
+
+function renderTextoComMencoes(texto: string) {
+  return texto.split(/(@\w+)/g).map((parte, i) =>
+    /^@\w+$/.test(parte)
+      ? <span key={i} className="text-[#1B4D2E] font-semibold">{parte}</span>
+      : <span key={i}>{parte}</span>,
+  )
 }
 
 // ── Progresso do checklist ────────────────────────────────────────────────────
@@ -462,6 +484,174 @@ function AnalistasVinculados({ boardPeritoId }: { boardPeritoId: string }) {
   )
 }
 
+// ── Comentários (histórico de atividade) ───────────────────────────────────────────
+
+function ComentariosSection({ boardPeritoId }: { boardPeritoId: string }) {
+  const { user } = useAuth()
+  const comentarios = useBoardComentariosStore((s) => s.comentariosByPerito[boardPeritoId])
+  const { fetchComentarios, addComentario, updateComentario, deleteComentario } = useBoardComentariosStore()
+  const analistasCadastrados = useAnalistasStore((s) => s.analistas)
+  const { success, error: toastError } = useToast()
+
+  const [texto, setTexto] = useState('')
+  const [mencionadosIds, setMencionadosIds] = useState<string[]>([])
+  const [submitting, setSubmitting] = useState(false)
+
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editTexto, setEditTexto] = useState('')
+  const [savingEdit, setSavingEdit] = useState(false)
+
+  useEffect(() => {
+    fetchComentarios(boardPeritoId)
+  }, [boardPeritoId, fetchComentarios])
+
+  const lista = comentarios ?? []
+
+  const mentionMatch = texto.match(/@(\w*)$/)
+  const mentionQuery = mentionMatch ? mentionMatch[1].toLowerCase() : null
+  const mentionSuggestions = mentionQuery !== null
+    ? analistasCadastrados.filter((a) => a.nome.toLowerCase().includes(mentionQuery)).slice(0, 5)
+    : []
+
+  function handlePickMention(analistaId: string, analistaNome: string) {
+    const semTagParcial = texto.replace(/@(\w*)$/, '')
+    const tag = `@${analistaNome.replace(/\s+/g, '')}`
+    setTexto(`${semTagParcial}${tag} `)
+    setMencionadosIds((prev) => Array.from(new Set([...prev, analistaId])))
+  }
+
+  async function handleSubmit() {
+    if (!texto.trim() || !user) return
+    setSubmitting(true)
+    try {
+      await addComentario(boardPeritoId, texto.trim(), mencionadosIds, user.id, user.email ?? null)
+      success('Comentário adicionado')
+      setTexto('')
+      setMencionadosIds([])
+    } catch (err) {
+      toastError(err instanceof Error ? err.message : 'Erro ao comentar')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  function startEdit(c: BoardComentario) {
+    setEditingId(c.id)
+    setEditTexto(c.texto)
+  }
+
+  function cancelEdit() {
+    setEditingId(null)
+  }
+
+  async function handleSaveEdit(c: BoardComentario) {
+    if (!editTexto.trim()) return
+    setSavingEdit(true)
+    try {
+      await updateComentario(boardPeritoId, c.id, editTexto.trim(), c.mencionados)
+      success('Comentário atualizado')
+      setEditingId(null)
+    } catch (err) {
+      toastError(err instanceof Error ? err.message : 'Erro ao atualizar comentário')
+    } finally {
+      setSavingEdit(false)
+    }
+  }
+
+  async function handleDelete(c: BoardComentario) {
+    if (!window.confirm('Excluir este comentário?')) return
+    try {
+      await deleteComentario(boardPeritoId, c.id)
+      success('Comentário excluído')
+    } catch (err) {
+      toastError(err instanceof Error ? err.message : 'Erro ao excluir comentário')
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="text-xs font-semibold text-[#5A6A5E] uppercase tracking-wide">Comentários</div>
+
+      {lista.length === 0 ? (
+        <p className="text-xs text-[#9AA4A0]">Nenhum comentário ainda.</p>
+      ) : (
+        <div className="space-y-3">
+          {lista.map((c) => (
+            <div key={c.id} className="flex gap-2.5">
+              <div className="w-7 h-7 rounded-full bg-[#1B4D2E]/10 text-[#1B4D2E] text-[11px] font-semibold flex items-center justify-center shrink-0">
+                {initialsFromEmail(c.autorEmail)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs font-semibold text-[#1A1A1A]">{c.autorEmail ?? 'Usuário'}</span>
+                  <span className="text-[11px] text-[#9AA4A0]">{formatDataHora(c.createdAt)}</span>
+                </div>
+
+                {editingId === c.id ? (
+                  <div className="mt-1 space-y-2">
+                    <Textarea value={editTexto} onChange={(e) => setEditTexto(e.target.value)} rows={2} />
+                    <div className="flex justify-end gap-2">
+                      <Button type="button" variant="secondary" size="sm" onClick={cancelEdit}>Cancelar</Button>
+                      <Button type="button" variant="primary" size="sm" disabled={savingEdit} onClick={() => handleSaveEdit(c)}>
+                        {savingEdit ? 'Salvando…' : 'Salvar'}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-sm text-[#1A1A1A] mt-0.5 whitespace-pre-wrap break-words">
+                      {renderTextoComMencoes(c.texto)}
+                    </p>
+                    {user?.id === c.autorId && (
+                      <div className="flex items-center gap-2 mt-1">
+                        <button onClick={() => startEdit(c)} className="text-[11px] text-[#5A6A5E] hover:text-[#1B4D2E] transition-colors">
+                          Editar
+                        </button>
+                        <span className="text-[#D4DAD6]">·</span>
+                        <button onClick={() => handleDelete(c)} className="text-[11px] text-[#5A6A5E] hover:text-red-600 transition-colors">
+                          Excluir
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="relative space-y-2">
+        <Textarea
+          value={texto}
+          onChange={(e) => setTexto(e.target.value)}
+          placeholder="Escreva um comentário… use @ para mencionar um analista"
+          rows={2}
+        />
+        {mentionSuggestions.length > 0 && (
+          <div className="absolute z-10 bg-white border border-[#D4DAD6] rounded-md shadow-md w-56 overflow-hidden">
+            {mentionSuggestions.map((a) => (
+              <button
+                key={a.id}
+                type="button"
+                onClick={() => handlePickMention(a.id, a.nome)}
+                className="w-full text-left px-3 py-1.5 text-sm text-[#1A1A1A] hover:bg-[#F4F6F4] transition-colors"
+              >
+                {a.nome}
+              </button>
+            ))}
+          </div>
+        )}
+        <div className="flex justify-end">
+          <Button type="button" variant="primary" size="sm" disabled={!texto.trim() || submitting} onClick={handleSubmit}>
+            {submitting ? 'Enviando…' : 'Comentar'}
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Painel de detalhe ──────────────────────────────────────────────────────────────
 
 function DetailModal({
@@ -559,6 +749,10 @@ function DetailModal({
               ))}
             </Select>
           </FormField>
+        </div>
+
+        <div className="border-t border-[#D4DAD6] pt-5">
+          <ComentariosSection boardPeritoId={perito.id} />
         </div>
 
         <div className="border-t border-[#D4DAD6] pt-5 flex justify-end gap-2">
