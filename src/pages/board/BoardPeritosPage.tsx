@@ -11,6 +11,7 @@ import { BOARD_STATUS, TIPO_OPTIONS, FORMATO_OPTIONS } from '../../types/board'
 import type { BoardPerito, BoardStatus, BoardLote } from '../../types/board'
 import { TRT_OPTIONS } from '../../types'
 import { cn } from '../../lib/utils'
+import VisaoPorMes from './VisaoPorMes'
 
 const STATUS_COLORS: Record<BoardStatus, string> = {
   nao_ativo:    '#9AA4A0',
@@ -21,7 +22,7 @@ const STATUS_COLORS: Record<BoardStatus, string> = {
   entrega:      '#1D9E75',
 }
 
-function regionBadgeClasses(regiao: string): string {
+export function regionBadgeClasses(regiao: string): string {
   const token = regiao.trim().split(/\s+/)[0] ?? regiao
   if (token === 'TRT4') return 'bg-[#EAF3ED] text-[#1B4D2E]'
   if (token === 'TRT6') return 'bg-amber-50 text-amber-700'
@@ -67,7 +68,7 @@ function Kpi({ label, value }: { label: string; value: number }) {
 
 // ── Barra de progresso ───────────────────────────────────────────────────────────
 
-function ProgressBar({ entregue, total }: { entregue: number; total: number }) {
+export function ProgressBar({ entregue, total }: { entregue: number; total: number }) {
   const pct = total > 0 ? Math.min(100, (entregue / total) * 100) : 0
   return (
     <div className="w-24 h-1.5 bg-[#EEF1EE] rounded-full overflow-hidden shrink-0">
@@ -586,6 +587,7 @@ export default function BoardPeritosPage() {
   const [collapsedStatuses, setCollapsedStatuses] = useState<Set<BoardStatus>>(new Set())
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [mesAlvo, setMesAlvo] = useState<string | null>(null)
+  const [view, setView] = useState<'status' | 'mes'>('status')
 
   useEffect(() => {
     fetchBoard()
@@ -714,6 +716,27 @@ export default function BoardPeritosPage() {
         </div>
       </div>
 
+      {/* ── Alternância de visão ──────────────────────────────────────────── */}
+      <div className="flex items-center gap-1.5">
+        {([
+          { value: 'status', label: 'Por status' },
+          { value: 'mes',     label: 'Por mês' },
+        ] as const).map((opt) => (
+          <button
+            key={opt.value}
+            onClick={() => setView(opt.value)}
+            className={cn(
+              'px-3 py-1.5 rounded-md text-sm font-medium border transition-colors',
+              view === opt.value
+                ? 'bg-[#1B4D2E] text-white border-[#1B4D2E]'
+                : 'bg-white text-[#5A6A5E] border-[#D4DAD6] hover:border-[#1B4D2E]/40',
+            )}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
       {error && (
         <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
           {error}
@@ -791,22 +814,26 @@ export default function BoardPeritosPage() {
         <div className="text-sm text-[#5A6A5E] text-center py-10">Carregando peritos…</div>
       )}
 
-      {/* ── Seções por status ──────────────────────────────────────────────── */}
+      {/* ── Conteúdo: por status ou por mês ──────────────────────────────────── */}
       {(!loading || items.length > 0) && (
-        <div className="space-y-3">
-          {grouped.map((g) => (
-            <StatusSection
-              key={g.status}
-              status={g.status}
-              label={g.label}
-              items={g.items}
-              collapsed={collapsedStatuses.has(g.status)}
-              mesAlvo={mesAlvo}
-              onToggle={() => toggleSection(g.status)}
-              onOpenPerito={setSelectedId}
-            />
-          ))}
-        </div>
+        view === 'status' ? (
+          <div className="space-y-3">
+            {grouped.map((g) => (
+              <StatusSection
+                key={g.status}
+                status={g.status}
+                label={g.label}
+                items={g.items}
+                collapsed={collapsedStatuses.has(g.status)}
+                mesAlvo={mesAlvo}
+                onToggle={() => toggleSection(g.status)}
+                onOpenPerito={setSelectedId}
+              />
+            ))}
+          </div>
+        ) : (
+          <VisaoPorMes peritos={filtered} mesAlvo={mesAlvo} />
+        )
       )}
 
       {selected && (
