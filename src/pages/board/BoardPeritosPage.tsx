@@ -52,6 +52,13 @@ function initialsFromEmail(email: string | null): string {
   return initials(local)
 }
 
+function resolveAutorNome(autorEmail: string | null, analistas: { nome: string; email: string | null }[]): string | null {
+  if (!autorEmail) return null
+  const email = autorEmail.trim().toLowerCase()
+  const match = analistas.find((a) => a.email?.trim().toLowerCase() === email)
+  return match ? match.nome : null
+}
+
 function formatDataHora(iso: string): string {
   return new Date(iso).toLocaleString('pt-BR', {
     day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
@@ -576,14 +583,17 @@ function ComentariosSection({ boardPeritoId }: { boardPeritoId: string }) {
         <p className="text-xs text-[#9AA4A0]">Nenhum comentário ainda.</p>
       ) : (
         <div className="space-y-3">
-          {lista.map((c) => (
+          {lista.map((c) => {
+            const autorNome = resolveAutorNome(c.autorEmail, analistasCadastrados)
+            const autorLabel = autorNome ? `@${autorNome}` : (c.autorEmail ?? 'Usuário')
+            return (
             <div key={c.id} className="flex gap-2.5">
               <div className="w-7 h-7 rounded-full bg-[#1B4D2E]/10 text-[#1B4D2E] text-[11px] font-semibold flex items-center justify-center shrink-0">
-                {initialsFromEmail(c.autorEmail)}
+                {autorNome ? initials(autorNome) : initialsFromEmail(c.autorEmail)}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs font-semibold text-[#1A1A1A]">{c.autorEmail ?? 'Usuário'}</span>
+                  <span className="text-xs font-semibold text-[#1A1A1A]">{autorLabel}</span>
                   <span className="text-[11px] text-[#9AA4A0]">{formatDataHora(c.createdAt)}</span>
                 </div>
 
@@ -617,7 +627,8 @@ function ComentariosSection({ boardPeritoId }: { boardPeritoId: string }) {
                 )}
               </div>
             </div>
-          ))}
+            )
+          })}
         </div>
       )}
 
