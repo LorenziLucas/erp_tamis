@@ -4,6 +4,7 @@ import {
   LayoutDashboard, Table2,
   Settings, ChevronLeft, ChevronRight, LogOut, User,
   ChevronDown, Layers, Wallet, Trash2, AlertTriangle, ReceiptText, BookUser, FolderOpen, MapPin,
+  KanbanSquare,
 } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { useLotesStore } from '../../store/lotesStore'
@@ -31,6 +32,10 @@ export function Sidebar({ collapsed, onToggle }: Props) {
   const isLoteActive       = location.pathname === '/' || location.pathname.startsWith('/lotes')
   const isFinanceiroActive = location.pathname.startsWith('/financeiro')
   const isCadastrosActive  = location.pathname.startsWith('/cadastros')
+  const isBoardActive      = location.pathname.startsWith('/board')
+
+  // Visibilidade temporária durante a construção do módulo — remover quando liberado para todos.
+  const isBoardVisible = user?.id === 'f220fe11-3324-4b2d-8687-18a1261daa50'
 
   const [loteOpen,       setLoteOpen]       = useState(true)
   const [financeiroOpen, setFinanceiroOpen] = useState(() => location.pathname.startsWith('/financeiro'))
@@ -116,6 +121,24 @@ export function Sidebar({ collapsed, onToggle }: Props) {
             >
               <FolderOpen size={15} />
             </button>
+
+            {isBoardVisible && (
+              <>
+                <div className="w-6 h-px bg-white/10 my-1" />
+                <button
+                  onClick={onToggle}
+                  title="Gestão de Peritos"
+                  className={cn(
+                    'w-9 h-9 flex items-center justify-center rounded-md transition-colors',
+                    isBoardActive
+                      ? 'bg-white/20 text-[#F5C518]'
+                      : 'text-white/50 hover:text-white hover:bg-white/10',
+                  )}
+                >
+                  <KanbanSquare size={15} />
+                </button>
+              </>
+            )}
           </div>
         ) : (
           <div className="space-y-1">
@@ -261,6 +284,27 @@ export function Sidebar({ collapsed, onToggle }: Props) {
                 </div>
               )}
             </div>
+
+            {/* ── Grupo 4: Gestão de Peritos (visível apenas durante a construção) ── */}
+            {isBoardVisible && (
+              <div>
+                <NavLink
+                  to="/board/peritos"
+                  className={({ isActive }) =>
+                    cn(
+                      'w-full flex items-center gap-2 px-2.5 py-2 rounded-md transition-colors',
+                      'text-xs font-semibold uppercase tracking-wider',
+                      isActive
+                        ? 'text-[#F5C518] bg-white/10'
+                        : 'text-white/50 hover:text-white hover:bg-white/10',
+                    )
+                  }
+                >
+                  <KanbanSquare size={13} className={cn('shrink-0', isBoardActive ? 'text-[#F5C518]' : 'text-[#F5C518]/60')} />
+                  <span className="flex-1 text-left">Gestão de Peritos</span>
+                </NavLink>
+              </div>
+            )}
 
           </div>
         )}

@@ -10,6 +10,7 @@ import LoginPage from './pages/LoginPage'
 import CobrancasPage from './pages/cobrancas/CobrancasPage'
 import PeritosPage from './pages/peritos/PeritosPage'
 import TRTsPage from './pages/trts/TRTsPage'
+import BoardPeritosPage from './pages/board/BoardPeritosPage'
 
 /** Redireciona para /login se não autenticado; mostra nada enquanto carrega */
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -39,6 +40,7 @@ function AppRoutes() {
         <Route path="/financeiro/cobrancas" element={<CobrancasPage />} />
         <Route path="/cadastros/peritos"   element={<PeritosPage />} />
         <Route path="/cadastros/trts"     element={<TRTsPage />} />
+        <Route path="/board/peritos"      element={<BoardPeritosPage />} />
       </Route>
 
       {/* Qualquer rota desconhecida → home */}
