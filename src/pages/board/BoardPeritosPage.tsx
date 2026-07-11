@@ -54,12 +54,6 @@ function useChecklistProgress(boardPeritoId: string, mesAlvo: string | null = nu
   return { entregue, total }
 }
 
-const MES_FILTRO_OPTIONS: { value: 'atual' | 'proximo' | 'todos'; label: string }[] = [
-  { value: 'atual',   label: 'Mês atual' },
-  { value: 'proximo', label: 'Próximo mês' },
-  { value: 'todos',   label: 'Todos' },
-]
-
 // ── KPI ────────────────────────────────────────────────────────────────────────
 
 function Kpi({ label, value }: { label: string; value: number }) {
@@ -591,7 +585,7 @@ export default function BoardPeritosPage() {
   const [activeRegions, setActiveRegions] = useState<Set<string>>(new Set())
   const [collapsedStatuses, setCollapsedStatuses] = useState<Set<BoardStatus>>(new Set())
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [mesFiltro, setMesFiltro] = useState<'atual' | 'proximo' | 'todos'>('todos')
+  const [mesAlvo, setMesAlvo] = useState<string | null>(null)
 
   useEffect(() => {
     fetchBoard()
@@ -629,7 +623,11 @@ export default function BoardPeritosPage() {
     }
   }, [])
 
-  const mesAlvo = mesFiltro === 'atual' ? mesAtual : mesFiltro === 'proximo' ? mesProximo : null
+  const mesShortcuts = [
+    { label: 'Este mês',    value: mesAtual },
+    { label: 'Próximo mês', value: mesProximo },
+    { label: 'Todos',       value: null as string | null },
+  ]
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -743,13 +741,13 @@ export default function BoardPeritosPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-1.5">
-          {MES_FILTRO_OPTIONS.map((opt) => (
+          {mesShortcuts.map((opt) => (
             <button
-              key={opt.value}
-              onClick={() => setMesFiltro(opt.value)}
+              key={opt.label}
+              onClick={() => setMesAlvo(opt.value)}
               className={cn(
                 'px-2.5 py-1 rounded-full text-xs font-medium border transition-colors',
-                mesFiltro === opt.value
+                mesAlvo === opt.value
                   ? 'bg-[#1B4D2E] text-white border-[#1B4D2E]'
                   : 'bg-white text-[#5A6A5E] border-[#D4DAD6] hover:border-[#1B4D2E]/40',
               )}
@@ -757,6 +755,12 @@ export default function BoardPeritosPage() {
               {opt.label}
             </button>
           ))}
+          <input
+            type="month"
+            value={mesAlvo ?? ''}
+            onChange={(e) => setMesAlvo(e.target.value || null)}
+            className="h-7 px-2.5 rounded-full text-xs font-medium border border-[#D4DAD6] bg-white text-[#5A6A5E] focus:outline-none focus:border-[#1B4D2E] focus:ring-1 focus:ring-[#1B4D2E]/30 transition-colors"
+          />
         </div>
 
         {regions.length > 0 && (
