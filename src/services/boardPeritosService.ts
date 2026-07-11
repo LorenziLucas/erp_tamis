@@ -69,3 +69,44 @@ export async function deletarBoardPerito(id: string): Promise<{ error: unknown }
 
   return { error }
 }
+
+// ── Vínculos de analista (N:N) ────────────────────────────────────────────────
+
+interface AnalistaLinkRow {
+  analista_id: string
+  analistas: { id: string; nome: string } | null
+}
+
+export async function listarAnalistasDoPerito(boardPeritoId: string): Promise<{ data: { id: string; nome: string }[]; error: unknown }> {
+  const { data, error } = await supabase
+    .from('board_perito_analista')
+    .select('analista_id, analistas(id,nome)')
+    .eq('board_perito_id', boardPeritoId)
+
+  const analistas = (data as AnalistaLinkRow[] | null)
+    ?.map((r) => r.analistas)
+    .filter((a): a is { id: string; nome: string } => !!a) ?? []
+
+  return { data: analistas, error }
+}
+
+export async function vincularAnalista(boardPeritoId: string, analistaId: string): Promise<{ error: unknown }> {
+  const { error } = await supabase
+    .from('board_perito_analista')
+    .upsert(
+      { board_perito_id: boardPeritoId, analista_id: analistaId },
+      { onConflict: 'board_perito_id,analista_id', ignoreDuplicates: true },
+    )
+
+  return { error }
+}
+
+export async function desvincularAnalista(boardPeritoId: string, analistaId: string): Promise<{ error: unknown }> {
+  const { error } = await supabase
+    .from('board_perito_analista')
+    .delete()
+    .eq('board_perito_id', boardPeritoId)
+    .eq('analista_id', analistaId)
+
+  return { error }
+}

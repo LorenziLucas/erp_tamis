@@ -1,3 +1,5 @@
+export { TIPO_OPTIONS, FORMATO_OPTIONS } from './index'
+
 export type BoardStatus =
   | 'nao_ativo'
   | 'ativo'
@@ -27,3 +29,14 @@ export const BOARD_STATUS: { value: BoardStatus; label: string }[] = [
   { value: 'padronizacao',  label: 'Padronização e upload para o BD' },
   { value: 'entrega',       label: 'Entrega do lote' },
 ]
+
+export interface BoardLote {
+  id: string
+  boardPeritoId: string
+  numero: number
+  mesRef: string | null
+  tipo: string | null
+  formato: string | null
+  entregue: boolean
+  ordem: number
+}
