@@ -103,7 +103,7 @@ function PeritoRow({ perito, mesAlvo, onOpen }: { perito: BoardPerito; mesAlvo: 
   const analistasVinculados = useBoardPeritosStore((s) => s.analistasByPerito[perito.id])
   const analistasLabel = analistasVinculados && analistasVinculados.length > 0
     ? analistasVinculados.map((a) => a.nome.split(' ')[0]).join(', ')
-    : '—'
+    : ''
 
   return (
     <button
@@ -943,10 +943,11 @@ export default function BoardPeritosPage() {
   const { analistas, fetchAnalistas } = useAnalistasStore()
 
   const [query, setQuery] = useState('')
-  const [activeRegions, setActiveRegions] = useState<Set<string>>(new Set())
+  const [activeRegion, setActiveRegion] = useState('')
   const [collapsedStatuses, setCollapsedStatuses] = useState<Set<BoardStatus>>(new Set())
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [mesAlvo, setMesAlvo] = useState<string | null>(null)
+  const [mesCustomAtivo, setMesCustomAtivo] = useState(false)
   const [view, setView] = useState<'status' | 'mes'>('status')
 
   useEffect(() => {
@@ -991,10 +992,23 @@ export default function BoardPeritosPage() {
     { label: 'Todos',       value: null as string | null },
   ]
 
+  const mesSelectValue = mesCustomAtivo || (mesAlvo !== null && mesAlvo !== mesAtual && mesAlvo !== mesProximo)
+    ? 'custom'
+    : (mesAlvo ?? '')
+
+  function handleMesSelectChange(value: string) {
+    if (value === 'custom') {
+      setMesCustomAtivo(true)
+    } else {
+      setMesCustomAtivo(false)
+      setMesAlvo(value || null)
+    }
+  }
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return items.filter((i) => {
-      if (activeRegions.size > 0 && !activeRegions.has(i.regiao)) return false
+      if (activeRegion && i.regiao !== activeRegion) return false
       if (q && !i.nome.toLowerCase().includes(q)) return false
       if (mesAlvo) {
         const lotes = lotesByPerito[i.id] ?? []
@@ -1002,7 +1016,7 @@ export default function BoardPeritosPage() {
       }
       return true
     })
-  }, [items, query, activeRegions, mesAlvo, lotesByPerito])
+  }, [items, query, activeRegion, mesAlvo, lotesByPerito])
 
   const grouped = useMemo(() => {
     return BOARD_STATUS.map((s) => ({
@@ -1073,15 +1087,6 @@ export default function BoardPeritosPage() {
 
   const selected = useMemo(() => items.find((i) => i.id === selectedId) ?? null, [items, selectedId])
 
-  function toggleRegion(regiao: string) {
-    setActiveRegions((prev) => {
-      const next = new Set(prev)
-      if (next.has(regiao)) next.delete(regiao)
-      else next.add(regiao)
-      return next
-    })
-  }
-
   function toggleSection(status: BoardStatus) {
     setCollapsedStatuses((prev) => {
       const next = new Set(prev)
@@ -1139,8 +1144,8 @@ export default function BoardPeritosPage() {
       )}
 
       {/* ── Barra de ferramentas ──────────────────────────────────────────── */}
-      <div className="space-y-3">
-        <div className="relative">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-[200px]">
           <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9AA4A0] pointer-events-none" />
           <input
             value={query}
@@ -1158,49 +1163,36 @@ export default function BoardPeritosPage() {
           )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-1.5">
+        <Select
+          value={mesSelectValue}
+          onChange={(e) => handleMesSelectChange(e.target.value)}
+          className="h-9 w-auto shrink-0"
+        >
           {mesShortcuts.map((opt) => (
-            <button
-              key={opt.label}
-              onClick={() => setMesAlvo(opt.value)}
-              className={cn(
-                'px-2.5 py-1 rounded-full text-xs font-medium border transition-colors',
-                mesAlvo === opt.value
-                  ? 'bg-[#1B4D2E] text-white border-[#1B4D2E]'
-                  : 'bg-white text-[#5A6A5E] border-[#D4DAD6] hover:border-[#1B4D2E]/40',
-              )}
-            >
-              {opt.label}
-            </button>
+            <option key={opt.label} value={opt.value ?? ''}>{opt.label}</option>
           ))}
+          <option value="custom">Escolher período…</option>
+        </Select>
+        {mesSelectValue === 'custom' && (
           <input
             type="month"
             value={mesAlvo ?? ''}
             onChange={(e) => setMesAlvo(e.target.value || null)}
-            className="h-7 px-2.5 rounded-full text-xs font-medium border border-[#D4DAD6] bg-white text-[#5A6A5E] focus:outline-none focus:border-[#1B4D2E] focus:ring-1 focus:ring-[#1B4D2E]/30 transition-colors"
+            className="h-9 px-2.5 rounded-md text-sm border border-[#D4DAD6] bg-white text-[#1A1A1A] focus:outline-none focus:border-[#1B4D2E] focus:ring-1 focus:ring-[#1B4D2E]/30 transition-colors shrink-0"
           />
-        </div>
+        )}
 
         {regions.length > 0 && (
-          <div className="flex flex-wrap items-center gap-1.5">
-            {regions.map((regiao) => {
-              const active = activeRegions.has(regiao)
-              return (
-                <button
-                  key={regiao}
-                  onClick={() => toggleRegion(regiao)}
-                  className={cn(
-                    'px-2.5 py-1 rounded-full text-xs font-medium border transition-colors',
-                    active
-                      ? 'bg-[#1B4D2E] text-white border-[#1B4D2E]'
-                      : 'bg-white text-[#5A6A5E] border-[#D4DAD6] hover:border-[#1B4D2E]/40',
-                  )}
-                >
-                  {regiao}
-                </button>
-              )
-            })}
-          </div>
+          <Select
+            value={activeRegion}
+            onChange={(e) => setActiveRegion(e.target.value)}
+            className="h-9 w-auto shrink-0"
+          >
+            <option value="">Todas as regiões</option>
+            {regions.map((regiao) => (
+              <option key={regiao} value={regiao}>{regiao}</option>
+            ))}
+          </Select>
         )}
       </div>
 
