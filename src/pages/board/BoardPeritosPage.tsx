@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Search, ChevronDown, ChevronRight as ArrowRight, X, ArrowRightCircle, Plus, Trash2, Pencil, FileSpreadsheet } from 'lucide-react'
+import { Search, ChevronDown, ChevronRight as ArrowRight, X, ArrowRightCircle, Plus, Trash2, Pencil, FileSpreadsheet, FileText, Clock, TrendingUp } from 'lucide-react'
 import { useBoardPeritosStore } from '../../store/boardPeritosStore'
 import { useBoardLotesStore } from '../../store/boardLotesStore'
 import { useAnalistasStore } from '../../store/analistasStore'
@@ -9,6 +9,7 @@ import { useToast } from '../../components/ui/Toast'
 import { Modal } from '../../components/ui/Modal'
 import { Button } from '../../components/ui/Button'
 import { Input, Select, FormField, Textarea } from '../../components/ui/Input'
+import { KpiCard } from '../../components/ui/Card'
 import { BOARD_STATUS, TIPO_OPTIONS, FORMATO_OPTIONS } from '../../types/board'
 import type { BoardPerito, BoardStatus, BoardLote, BoardComentario } from '../../types/board'
 import { TRT_OPTIONS } from '../../types'
@@ -82,17 +83,6 @@ function useChecklistProgress(boardPeritoId: string, mesAlvo: string | null = nu
   const total = relevantes.length
   const entregue = relevantes.filter((l) => l.entregue).length
   return { entregue, total }
-}
-
-// ── KPI ────────────────────────────────────────────────────────────────────────
-
-function Kpi({ label, value, color }: { label: string; value: number; color: string }) {
-  return (
-    <div className="bg-[#F4F6F4] rounded-xl py-3 px-4 text-center">
-      <div className="text-[28px] font-medium leading-tight" style={{ color }}>{value}</div>
-      <div className="text-[10px] text-[#5A6A5E] uppercase tracking-wide mt-0.5">{label}</div>
-    </div>
-  )
 }
 
 // ── Barra de progresso ───────────────────────────────────────────────────────────
@@ -1077,12 +1067,12 @@ export default function BoardPeritosPage() {
             {items.length} perito{items.length !== 1 ? 's' : ''} cadastrado{items.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
-          <Kpi label="Provisionados"   value={kpis.total}         color="#5A6A5E" />
-          <Kpi label="Em 1ª análise"   value={kpis.em1aAnalise}   color="#534AB7" />
-          <Kpi label="Em 2ª análise"   value={kpis.em2aAnalise}   color="#D4537E" />
-          <Kpi label="Entregues"       value={kpis.entregueTotal} color="#1D9E75" />
-          <Kpi label="Pendentes"       value={kpis.pendenteTotal} color="#D85A30" />
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
+          <KpiCard label="Provisionados" value={kpis.total}         color="blue"   icon={FileText}   sub="lotes no checklist" />
+          <KpiCard label="Em 1ª análise" value={kpis.em1aAnalise}   color="purple" icon={Clock}      sub="lotes" />
+          <KpiCard label="Em 2ª análise" value={kpis.em2aAnalise}   color="teal"   icon={Clock}      sub="lotes" />
+          <KpiCard label="Entregues"     value={kpis.entregueTotal} color="green"  icon={TrendingUp} sub="lotes" />
+          <KpiCard label="Pendentes"     value={kpis.pendenteTotal} color="red"    icon={FileText}   sub="lotes" />
         </div>
       </div>
 
