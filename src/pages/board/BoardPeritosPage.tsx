@@ -1015,17 +1015,52 @@ export default function BoardPeritosPage() {
   const kpis = useMemo(() => {
     let totalLotes = 0
     let entregueLotes = 0
-    let em1aAnalise = 0
-    let em2aAnalise = 0
 
     items.forEach((p) => {
       const lotes = lotesByPerito[p.id] ?? []
       const relevantes = mesAlvo ? lotes.filter((l) => l.mesRef?.slice(0, 7) === mesAlvo) : lotes
       totalLotes += relevantes.length
       entregueLotes += relevantes.filter((l) => l.entregue).length
-      if (p.status === 'analise_1') em1aAnalise += relevantes.length
-      if (p.status === 'analise_2') em2aAnalise += relevantes.length
     })
+
+    // "Em análise" não soma todos os lotes do perito: cada perito representa,
+    // no máximo, 1 lote (o pendente mais próximo do mês de referência) — pois
+    // na prática só há um lote sendo trabalhado por vez, e peritos com muitos
+    // lotes históricos (já entregues) não devem inflar o KPI. A "distância"
+    // ao mês de referência só decide QUAL lote pendente representa o perito
+    // (o mais próximo, com prioridade para o mês exato); a contribuição para
+    // a contagem é sempre 0 (sem pendente) ou 1 (com pendente).
+    const mesReferencia = mesAlvo ?? (() => {
+      const hoje = new Date()
+      return `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`
+    })()
+    const [anoRef, numMesRef] = mesReferencia.split('-').map(Number)
+
+    const distanciaAoMesRef = (mesRef: string | undefined) => {
+      if (!mesRef) return Infinity
+      const [ano, mes] = mesRef.split('-').map(Number)
+      return Math.abs((ano * 12 + mes) - (anoRef * 12 + numMesRef))
+    }
+
+    const contarEmAnalise = (status: 'analise_1' | 'analise_2') => {
+      let count = 0
+      items.forEach((p) => {
+        if (p.status !== status) return
+        const pendentes = (lotesByPerito[p.id] ?? []).filter((l) => !l.entregue)
+        if (pendentes.length === 0) return
+
+        // Escolhe o lote pendente que representa este perito no KPI: o mais
+        // próximo do mês de referência (exato = distância 0).
+        pendentes.reduce((melhor, l) =>
+          distanciaAoMesRef(l.mesRef?.slice(0, 7)) < distanciaAoMesRef(melhor.mesRef?.slice(0, 7)) ? l : melhor
+        )
+        count += 1
+      })
+      return count
+    }
+
+    const em1aAnalise = contarEmAnalise('analise_1')
+    const em2aAnalise = contarEmAnalise('analise_2')
 
     return {
       total:         totalLotes,
