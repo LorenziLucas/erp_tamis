@@ -86,11 +86,11 @@ function useChecklistProgress(boardPeritoId: string, mesAlvo: string | null = nu
 
 // ── KPI ────────────────────────────────────────────────────────────────────────
 
-function Kpi({ label, value }: { label: string; value: number }) {
+function Kpi({ label, value, color }: { label: string; value: number; color: string }) {
   return (
-    <div className="text-right">
-      <div className="text-lg font-bold text-[#1A1A1A] leading-tight">{value}</div>
-      <div className="text-[10px] text-[#5A6A5E] uppercase tracking-wide">{label}</div>
+    <div className="bg-[#F4F6F4] rounded-xl py-3 px-4 text-center">
+      <div className="text-[28px] font-medium leading-tight" style={{ color }}>{value}</div>
+      <div className="text-[10px] text-[#5A6A5E] uppercase tracking-wide mt-0.5">{label}</div>
     </div>
   )
 }
@@ -1023,25 +1023,24 @@ export default function BoardPeritosPage() {
   }, [filtered])
 
   const kpis = useMemo(() => {
-    const peritosComLoteNoMes = new Set<string>()
     let totalLotes = 0
     let entregueLotes = 0
+    let em1aAnalise = 0
+    let em2aAnalise = 0
 
     items.forEach((p) => {
       const lotes = lotesByPerito[p.id] ?? []
       const relevantes = mesAlvo ? lotes.filter((l) => l.mesRef?.slice(0, 7) === mesAlvo) : lotes
-      if (relevantes.length > 0) peritosComLoteNoMes.add(p.id)
       totalLotes += relevantes.length
       entregueLotes += relevantes.filter((l) => l.entregue).length
+      if (p.status === 'analise_1') em1aAnalise += relevantes.length
+      if (p.status === 'analise_2') em2aAnalise += relevantes.length
     })
-
-    const emAnalise = items.filter((p) =>
-      (p.status === 'analise_1' || p.status === 'analise_2') && (!mesAlvo || peritosComLoteNoMes.has(p.id)),
-    ).length
 
     return {
       total:         totalLotes,
-      emAnalise,
+      em1aAnalise,
+      em2aAnalise,
       entregueTotal: entregueLotes,
       pendenteTotal: totalLotes - entregueLotes,
     }
@@ -1071,18 +1070,19 @@ export default function BoardPeritosPage() {
     <div className="p-6 max-w-5xl mx-auto space-y-5">
 
       {/* ── Cabeçalho ─────────────────────────────────────────────────────── */}
-      <div className="flex items-start justify-between">
+      <div className="space-y-4">
         <div>
           <h1 className="text-xl font-bold text-[#1A1A1A]">Gestão de Peritos</h1>
           <p className="text-sm text-[#5A6A5E] mt-0.5">
             {items.length} perito{items.length !== 1 ? 's' : ''} cadastrado{items.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <div className="flex items-center gap-6">
-          <Kpi label="Total" value={kpis.total} />
-          <Kpi label="Em análise" value={kpis.emAnalise} />
-          <Kpi label="Entregues" value={kpis.entregueTotal} />
-          <Kpi label="Pendentes" value={kpis.pendenteTotal} />
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+          <Kpi label="Provisionados"   value={kpis.total}         color="#5A6A5E" />
+          <Kpi label="Em 1ª análise"   value={kpis.em1aAnalise}   color="#534AB7" />
+          <Kpi label="Em 2ª análise"   value={kpis.em2aAnalise}   color="#D4537E" />
+          <Kpi label="Entregues"       value={kpis.entregueTotal} color="#1D9E75" />
+          <Kpi label="Pendentes"       value={kpis.pendenteTotal} color="#D85A30" />
         </div>
       </div>
 
