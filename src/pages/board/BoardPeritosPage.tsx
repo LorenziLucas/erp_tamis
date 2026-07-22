@@ -407,13 +407,16 @@ function ChecklistLotes({ boardPeritoId }: { boardPeritoId: string }) {
   )
 }
 
-// ── Planilha de controle de lotes ─────────────────────────────────────────────────
+// ── Planilha de controle de lotes (ícone compacto no cabeçalho) ────────────────────
 
-function PlanilhaControleSection({ perito }: { perito: BoardPerito }) {
+function PlanilhaControleIcon({ perito }: { perito: BoardPerito }) {
   const { updateItem } = useBoardPeritosStore()
   const { success, error: toastError } = useToast()
 
-  const [editing, setEditing] = useState(false)
+  const hasUrl = !!perito.planilhaUrl
+
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [formOpen, setFormOpen] = useState(false)
   const [url, setUrl] = useState(perito.planilhaUrl ?? '')
   const [saving, setSaving] = useState(false)
 
@@ -423,12 +426,13 @@ function PlanilhaControleSection({ perito }: { perito: BoardPerito }) {
 
   function startEdit() {
     setUrl(perito.planilhaUrl ?? '')
-    setEditing(true)
+    setMenuOpen(false)
+    setFormOpen(true)
   }
 
-  function cancelEdit() {
+  function cancelForm() {
     setUrl(perito.planilhaUrl ?? '')
-    setEditing(false)
+    setFormOpen(false)
   }
 
   async function handleSave() {
@@ -441,7 +445,7 @@ function PlanilhaControleSection({ perito }: { perito: BoardPerito }) {
     try {
       await updateItem(perito.id, { planilhaUrl: trimmed })
       success('Planilha vinculada')
-      setEditing(false)
+      setFormOpen(false)
     } catch (err) {
       toastError(err instanceof Error ? err.message : 'Erro ao salvar planilha')
     } finally {
@@ -454,74 +458,91 @@ function PlanilhaControleSection({ perito }: { perito: BoardPerito }) {
     try {
       await updateItem(perito.id, { planilhaUrl: null })
       success('Planilha removida')
+      setMenuOpen(false)
     } catch (err) {
       toastError(err instanceof Error ? err.message : 'Erro ao remover planilha')
     }
   }
 
   return (
-    <div className="space-y-3">
-      <div className="text-xs font-semibold text-[#5A6A5E] uppercase tracking-wide">Planilha de controle de lotes</div>
+    <span className="relative inline-flex items-center gap-0.5">
+      {hasUrl ? (
+        <a
+          href={perito.planilhaUrl ?? undefined}
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Abrir planilha de controle de lotes"
+          className="p-0.5 rounded text-[#1D9E75] hover:bg-[#1D9E75]/10 transition-colors"
+        >
+          <FileSpreadsheet size={16} />
+        </a>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setFormOpen((v) => !v)}
+          className="p-0.5 rounded text-[#9AA4A0] hover:text-[#1B4D2E] hover:bg-[#1B4D2E]/10 transition-colors"
+          title="Vincular planilha de controle de lotes"
+        >
+          <FileSpreadsheet size={16} />
+        </button>
+      )}
 
-      {editing ? (
-        <div className="space-y-2">
-          <Input
-            type="url"
-            placeholder="https://…"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-          />
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="secondary" size="sm" onClick={cancelEdit}>Cancelar</Button>
-            <Button type="button" variant="primary" size="sm" disabled={saving} onClick={handleSave}>
-              {saving ? 'Salvando…' : 'Salvar'}
-            </Button>
-          </div>
-        </div>
-      ) : perito.planilhaUrl ? (
-        <div className="flex items-center gap-2">
-          <a
-            href={perito.planilhaUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-1 min-w-0 flex items-center gap-2 text-sm text-[#1B4D2E] hover:underline"
-          >
-            <FileSpreadsheet size={15} className="text-[#1D9E75] shrink-0" />
-            <span className="truncate">Planilha de controle de lotes</span>
-          </a>
+      {hasUrl && (
+        <button
+          type="button"
+          onClick={() => setMenuOpen((v) => !v)}
+          className="p-0.5 rounded text-[#9AA4A0] hover:text-[#1B4D2E] hover:bg-[#1B4D2E]/10 transition-colors"
+          title="Ações da planilha"
+        >
+          <ChevronDown size={11} />
+        </button>
+      )}
+
+      {menuOpen && hasUrl && (
+        <div className="absolute z-10 top-full left-0 mt-1 flex items-center gap-1 bg-white border border-[#D4DAD6] rounded-md shadow-md px-1.5 py-1">
           <button
+            type="button"
             onClick={startEdit}
-            className="p-1 rounded text-[#9AA4A0] hover:text-[#1B4D2E] hover:bg-[#1B4D2E]/10 transition-colors shrink-0"
+            className="p-1 rounded text-[#9AA4A0] hover:text-[#1B4D2E] hover:bg-[#1B4D2E]/10 transition-colors"
             title="Editar link"
           >
             <Pencil size={13} />
           </button>
           <button
+            type="button"
             onClick={handleRemove}
-            className="p-1 rounded text-[#9AA4A0] hover:text-red-600 hover:bg-red-50 transition-colors shrink-0"
+            className="p-1 rounded text-[#9AA4A0] hover:text-red-600 hover:bg-red-50 transition-colors"
             title="Remover link"
           >
             <Trash2 size={13} />
           </button>
         </div>
-      ) : (
-        <div className="space-y-2">
-          <p className="text-xs text-[#9AA4A0]">Nenhuma planilha vinculada.</p>
-          <div className="flex gap-2">
-            <Input
-              type="url"
-              placeholder="https://…"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              className="flex-1"
-            />
-            <Button type="button" variant="secondary" disabled={saving} onClick={handleSave}>
-              {saving ? 'Salvando…' : 'Salvar'}
-            </Button>
-          </div>
+      )}
+
+      {formOpen && (
+        <div className="absolute z-10 top-full left-0 mt-1 flex items-center gap-1.5 bg-white border border-[#D4DAD6] rounded-md shadow-md p-2 w-64">
+          <Input
+            type="url"
+            placeholder="https://…"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            className="flex-1"
+            autoFocus
+          />
+          <Button type="button" variant="primary" size="sm" disabled={saving} onClick={handleSave}>
+            {saving ? '…' : 'Salvar'}
+          </Button>
+          <button
+            type="button"
+            onClick={cancelForm}
+            className="p-1 rounded text-[#9AA4A0] hover:text-red-600 hover:bg-red-50 transition-colors shrink-0"
+            title="Cancelar"
+          >
+            <X size={13} />
+          </button>
         </div>
       )}
-    </div>
+    </span>
   )
 }
 
@@ -839,7 +860,10 @@ function DetailModal({
             {initials(perito.nome)}
           </div>
           <div className="min-w-0">
-            <div className="text-sm font-semibold text-[#1A1A1A] truncate">{perito.nome}</div>
+            <div className="flex items-center gap-1.5">
+              <div className="text-sm font-semibold text-[#1A1A1A] truncate">{perito.nome}</div>
+              <PlanilhaControleIcon perito={perito} />
+            </div>
             <div className="flex items-center gap-2 mt-0.5">
               <span className={cn('px-2 py-0.5 rounded-full text-[11px] font-medium', regionBadgeClasses(perito.regiao))}>
                 {perito.regiao}
@@ -849,11 +873,7 @@ function DetailModal({
           </div>
         </div>
 
-        <PlanilhaControleSection perito={perito} />
-
-        <div className="border-t border-[#D4DAD6] pt-5">
-          <AnalistasVinculados boardPeritoId={perito.id} />
-        </div>
+        <AnalistasVinculados boardPeritoId={perito.id} />
 
         <div className="border-t border-[#D4DAD6] pt-5">
           <FormField label="Região">
