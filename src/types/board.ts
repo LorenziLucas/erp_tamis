@@ -19,6 +19,7 @@ export interface BoardPerito {
   entregue: number
   mesRef: string | null
   ordem: number
+  planilhaUrl: string | null
 }
 
 export const BOARD_STATUS: { value: BoardStatus; label: string }[] = [

@@ -12,6 +12,7 @@ interface BoardPeritoDB {
   entregue: number
   mes_ref: string | null
   ordem: number
+  planilha_url: string | null
   user_id: string
   created_at: string
   updated_at: string
@@ -29,6 +30,7 @@ function dbToBoardPerito(row: BoardPeritoDB): BoardPerito {
     entregue:     row.entregue,
     mesRef:       row.mes_ref,
     ordem:        row.ordem,
+    planilhaUrl:  row.planilha_url,
   }
 }
 
@@ -51,11 +53,16 @@ export async function atualizarBoardPerito(
     regiao:       string
     analista:     string | null
     ordem:        number
+    planilhaUrl:  string | null
   }>,
 ): Promise<{ error: unknown }> {
+  const { planilhaUrl, ...rest } = updates
+  const dbUpdates: Record<string, unknown> = { ...rest }
+  if ('planilhaUrl' in updates) dbUpdates.planilha_url = planilhaUrl
+
   const { error } = await supabase
     .from('board_peritos')
-    .update(updates)
+    .update(dbUpdates)
     .eq('id', id)
 
   return { error }

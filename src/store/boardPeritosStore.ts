@@ -26,6 +26,7 @@ interface BoardPeritosState {
       regiao:       string
       analista:     string | null
       ordem:        number
+      planilhaUrl:  string | null
     }>,
   ) => Promise<void>
   deleteItem: (id: string) => Promise<void>
