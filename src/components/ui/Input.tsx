@@ -4,9 +4,9 @@ import { forwardRef } from 'react'
 
 const fieldBase = 'bg-white border border-[#D4DAD6] rounded-md text-[#1A1A1A] text-sm placeholder-[#9AA4A0] focus:outline-none focus:border-[#1B4D2E] focus:ring-1 focus:ring-[#1B4D2E]/30 transition-colors w-full disabled:opacity-50'
 
-export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement> & { error?: string }>(
-  ({ className, error, ...props }, ref) => (
-    <div className="w-full">
+export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement> & { error?: string; containerClassName?: string }>(
+  ({ className, error, containerClassName, ...props }, ref) => (
+    <div className={containerClassName ?? 'w-full'}>
       <input
         ref={ref}
         {...props}
@@ -18,9 +18,9 @@ export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputE
 )
 Input.displayName = 'Input'
 
-export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSelectElement> & { error?: string }>(
-  ({ className, error, children, ...props }, ref) => (
-    <div className="w-full">
+export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSelectElement> & { error?: string; containerClassName?: string }>(
+  ({ className, error, containerClassName, children, ...props }, ref) => (
+    <div className={containerClassName ?? 'w-full'}>
       <select
         ref={ref}
         {...props}
@@ -34,9 +34,9 @@ export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSel
 )
 Select.displayName = 'Select'
 
-export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<HTMLTextAreaElement> & { error?: string }>(
-  ({ className, error, ...props }, ref) => (
-    <div className="w-full">
+export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<HTMLTextAreaElement> & { error?: string; containerClassName?: string }>(
+  ({ className, error, containerClassName, ...props }, ref) => (
+    <div className={containerClassName ?? 'w-full'}>
       <textarea
         ref={ref}
         {...props}

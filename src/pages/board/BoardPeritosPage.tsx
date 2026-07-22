@@ -1166,7 +1166,8 @@ export default function BoardPeritosPage() {
         <Select
           value={mesSelectValue}
           onChange={(e) => handleMesSelectChange(e.target.value)}
-          className="h-9 w-auto shrink-0"
+          className="h-9"
+          containerClassName="w-auto shrink-0"
         >
           {mesShortcuts.map((opt) => (
             <option key={opt.label} value={opt.value ?? ''}>{opt.label}</option>
@@ -1186,7 +1187,8 @@ export default function BoardPeritosPage() {
           <Select
             value={activeRegion}
             onChange={(e) => setActiveRegion(e.target.value)}
-            className="h-9 w-auto shrink-0"
+            className="h-9"
+            containerClassName="w-auto shrink-0"
           >
             <option value="">Todas as regiões</option>
             {regions.map((regiao) => (
