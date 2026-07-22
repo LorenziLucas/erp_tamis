@@ -193,6 +193,7 @@ function ChecklistLotes({ boardPeritoId }: { boardPeritoId: string }) {
   const { fetchLotes, addLote, updateLote, deleteLote } = useBoardLotesStore()
   const { success, error: toastError } = useToast()
 
+  const [showAddForm, setShowAddForm] = useState(false)
   const [numeroStr, setNumeroStr] = useState('')
   const [mesAno, setMesAno] = useState('')
   const [tipo, setTipo] = useState('')
@@ -290,11 +291,20 @@ function ChecklistLotes({ boardPeritoId }: { boardPeritoId: string }) {
       setMesAno('')
       setTipo('')
       setFormato('')
+      setShowAddForm(false)
     } catch (err) {
       toastError(err instanceof Error ? err.message : 'Erro ao adicionar lote')
     } finally {
       setAdding(false)
     }
+  }
+
+  function cancelAdd() {
+    setNumeroStr('')
+    setMesAno('')
+    setTipo('')
+    setFormato('')
+    setShowAddForm(false)
   }
 
   return (
@@ -374,35 +384,48 @@ function ChecklistLotes({ boardPeritoId }: { boardPeritoId: string }) {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-2">
-        <Input
-          type="number"
-          min={1}
-          placeholder="Nº do lote"
-          value={numeroStr}
-          onChange={(e) => setNumeroStr(e.target.value)}
-        />
-        <Input
-          type="month"
-          value={mesAno}
-          onChange={(e) => setMesAno(e.target.value)}
-        />
-        <Select value={tipo} onChange={(e) => setTipo(e.target.value)}>
-          <option value="">Tipo — (opcional)</option>
-          {TIPO_OPTIONS.map((t) => (
-            <option key={t} value={t}>{t}</option>
-          ))}
-        </Select>
-        <Select value={formato} onChange={(e) => setFormato(e.target.value)}>
-          <option value="">Formato — (opcional)</option>
-          {FORMATO_OPTIONS.map((f) => (
-            <option key={f} value={f}>{f}</option>
-          ))}
-        </Select>
-      </div>
-      <Button type="button" variant="secondary" className="w-full" disabled={adding} onClick={handleAdd}>
-        <Plus size={13} /> {adding ? 'Adicionando…' : 'Adicionar'}
-      </Button>
+      {showAddForm ? (
+        <div className="space-y-2">
+          <div className="grid grid-cols-2 gap-2">
+            <Input
+              type="number"
+              min={1}
+              placeholder="Nº do lote"
+              value={numeroStr}
+              onChange={(e) => setNumeroStr(e.target.value)}
+            />
+            <Input
+              type="month"
+              value={mesAno}
+              onChange={(e) => setMesAno(e.target.value)}
+            />
+            <Select value={tipo} onChange={(e) => setTipo(e.target.value)}>
+              <option value="">Tipo — (opcional)</option>
+              {TIPO_OPTIONS.map((t) => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </Select>
+            <Select value={formato} onChange={(e) => setFormato(e.target.value)}>
+              <option value="">Formato — (opcional)</option>
+              {FORMATO_OPTIONS.map((f) => (
+                <option key={f} value={f}>{f}</option>
+              ))}
+            </Select>
+          </div>
+          <div className="flex gap-2">
+            <Button type="button" variant="secondary" className="flex-1" disabled={adding} onClick={handleAdd}>
+              <Plus size={13} /> {adding ? 'Adicionando…' : 'Adicionar'}
+            </Button>
+            <Button type="button" variant="secondary" disabled={adding} onClick={cancelAdd}>
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <Button type="button" variant="secondary" className="w-full" onClick={() => setShowAddForm(true)}>
+          <Plus size={13} /> Incluir lote
+        </Button>
+      )}
     </div>
   )
 }
