@@ -6,6 +6,18 @@ import {
   atualizarComentario,
   deletarComentario,
 } from '../services/boardComentariosService'
+import { notificarEmail } from '../services/notificacoesService'
+import { useAnalistasStore } from './analistasStore'
+import { useBoardPeritosStore } from './boardPeritosStore'
+
+function escapeHtml(texto: string): string {
+  return texto
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
 
 interface BoardComentariosState {
   comentariosByPerito: Record<string, BoardComentario[]>
@@ -52,6 +64,23 @@ export const useBoardComentariosStore = create<BoardComentariosState>((set) => (
         [boardPeritoId]: [...(state.comentariosByPerito[boardPeritoId] ?? []), data],
       },
     }))
+
+    if (mencionados.length > 0) {
+      const peritoNome = useBoardPeritosStore.getState().items.find((i) => i.id === boardPeritoId)?.nome ?? 'perito'
+      const analistas = useAnalistasStore.getState().analistas
+      const autorLabel = autorEmail ?? 'Alguém'
+      const textoEscapado = escapeHtml(texto)
+      mencionados.forEach((analistaId) => {
+        const analista = analistas.find((a) => a.id === analistaId)
+        if (analista?.email) {
+          notificarEmail({
+            to: analista.email,
+            subject: `Você foi mencionado em um comentário sobre ${peritoNome}`,
+            html: `<p>${escapeHtml(autorLabel)} mencionou você em um comentário sobre <strong>${peritoNome}</strong>:</p><p>${textoEscapado}</p>`,
+          })
+        }
+      })
+    }
   },
 
   updateComentario: async (boardPeritoId, id, texto, mencionados) => {

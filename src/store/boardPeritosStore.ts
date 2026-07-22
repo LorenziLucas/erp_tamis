@@ -8,6 +8,8 @@ import {
   vincularAnalista,
   desvincularAnalista,
 } from '../services/boardPeritosService'
+import { notificarEmail } from '../services/notificacoesService'
+import { useAnalistasStore } from './analistasStore'
 
 interface BoardPeritosState {
   items:   BoardPerito[]
@@ -86,6 +88,16 @@ export const useBoardPeritosStore = create<BoardPeritosState>((set) => ({
       throw new Error(message)
     }
     await useBoardPeritosStore.getState().fetchAnalistasDoPerito(boardPeritoId)
+
+    const analista = useAnalistasStore.getState().analistas.find((a) => a.id === analistaId)
+    const perito = useBoardPeritosStore.getState().items.find((i) => i.id === boardPeritoId)
+    if (analista?.email && perito) {
+      notificarEmail({
+        to: analista.email,
+        subject: `Você foi vinculado ao perito ${perito.nome}`,
+        html: `<p>Olá ${analista.nome},</p><p>Você foi vinculado ao acompanhamento do perito <strong>${perito.nome}</strong> no ERP Tamis.</p>`,
+      })
+    }
   },
 
   removeAnalista: async (boardPeritoId, analistaId) => {
