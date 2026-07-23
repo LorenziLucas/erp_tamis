@@ -24,8 +24,8 @@ export interface BoardPerito {
 }
 
 export const BOARD_STATUS: { value: BoardStatus; label: string }[] = [
-  { value: 'nao_ativo',     label: 'Não ativos' },
-  { value: 'ativo',         label: 'Ativos' },
+  { value: 'nao_ativo',     label: 'Sem lote previsto' },
+  { value: 'ativo',         label: 'Aguardando lote previsto' },
   { value: 'analise_1',     label: '1ª análise' },
   { value: 'analise_2',     label: '2ª análise' },
   { value: 'padronizacao',  label: 'Padronização e upload para o BD' },
