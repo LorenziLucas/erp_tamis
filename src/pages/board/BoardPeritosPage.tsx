@@ -1125,7 +1125,7 @@ export default function BoardPeritosPage() {
     let provisionamento = 0
     filtered.forEach((p) => {
       if (!FLUXO_STATUS.includes(p.status) && p.status !== 'ativo') return
-      provisionamento += lotesRelevantes(p.id).filter((l) => !l.entregue).length
+      provisionamento += lotesRelevantes(p.id).length
     })
 
     let entregueTotal = 0
@@ -1167,7 +1167,7 @@ export default function BoardPeritosPage() {
           </p>
         </div>
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-          <KpiCard label="Provisionamento" value={kpis.provisionamento} color="blue"   icon={FileText}   sub="lotes a fazer" />
+          <KpiCard label="Provisionamento" value={kpis.provisionamento} color="blue"   icon={FileText}   sub="lotes no período" />
           <KpiCard label="Entregues"       value={kpis.entregueTotal}   color="green"  icon={TrendingUp} sub="lotes" />
           <KpiCard label="Em 1ª análise"   value={kpis.em1aAnalise}     color="purple" icon={Clock}      sub="peritos" />
           <KpiCard label="Em 2ª análise"   value={kpis.em2aAnalise}     color="teal"   icon={Clock}      sub="peritos" />
