@@ -2,31 +2,34 @@ import { useEffect, useState } from 'react'
 import { Plus, Pencil, Trash2, UserCog, Mail } from 'lucide-react'
 import { useAnalistasStore } from '../../store/analistasStore'
 import { Button } from '../../components/ui/Button'
-import { Input, FormField } from '../../components/ui/Input'
+import { Input, Select, FormField } from '../../components/ui/Input'
 import { ConfirmDialog } from '../../components/ui/Modal'
 import { useToast } from '../../components/ui/Toast'
-import type { Analista } from '../../types/analista'
+import { cn } from '../../lib/utils'
+import type { Analista, TipoAcessoAnalista } from '../../types/analista'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 // ── Formulário de cadastro/edição ─────────────────────────────────────────────
 
 interface AnalistaFormState {
-  nome:  string
-  email: string
+  nome:       string
+  email:      string
+  tipoAcesso: TipoAcessoAnalista
 }
 
 interface AnalistasFormProps {
   loading:  boolean
   initial?: Analista
-  onSave:   (nome: string, email: string | null) => Promise<void>
+  onSave:   (nome: string, email: string | null, tipoAcesso: TipoAcessoAnalista) => Promise<void>
   onCancel: () => void
 }
 
 function AnalistasForm({ loading, initial, onSave, onCancel }: AnalistasFormProps) {
   const [form, setForm] = useState<AnalistaFormState>({
-    nome:  initial?.nome ?? '',
-    email: initial?.email ?? '',
+    nome:       initial?.nome ?? '',
+    email:      initial?.email ?? '',
+    tipoAcesso: initial?.tipoAcesso ?? 'analista',
   })
   const [erros, setErros] = useState<Partial<AnalistaFormState>>({})
 
@@ -40,7 +43,7 @@ function AnalistasForm({ loading, initial, onSave, onCancel }: AnalistasFormProp
 
   async function handleSave() {
     if (!validate()) return
-    await onSave(form.nome.trim(), form.email.trim() || null)
+    await onSave(form.nome.trim(), form.email.trim() || null, form.tipoAcesso)
   }
 
   return (
@@ -67,6 +70,16 @@ function AnalistasForm({ loading, initial, onSave, onCancel }: AnalistasFormProp
         />
       </FormField>
 
+      <FormField label="Tipo de acesso">
+        <Select
+          value={form.tipoAcesso}
+          onChange={(e) => setForm((f) => ({ ...f, tipoAcesso: e.target.value as TipoAcessoAnalista }))}
+        >
+          <option value="analista">Analista</option>
+          <option value="admin">Administrador</option>
+        </Select>
+      </FormField>
+
       <div className="flex justify-end gap-2 pt-2 border-t border-[#D4DAD6]">
         <Button type="button" variant="secondary" onClick={onCancel}>Cancelar</Button>
         <Button type="button" variant="primary" disabled={loading} onClick={handleSave}>
@@ -74,6 +87,17 @@ function AnalistasForm({ loading, initial, onSave, onCancel }: AnalistasFormProp
         </Button>
       </div>
     </div>
+  )
+}
+
+function TipoAcessoBadge({ tipoAcesso }: { tipoAcesso: TipoAcessoAnalista }) {
+  return (
+    <span className={cn(
+      'px-2 py-0.5 rounded-full text-[11px] font-medium shrink-0',
+      tipoAcesso === 'admin' ? 'bg-[#1B4D2E]/10 text-[#1B4D2E]' : 'bg-[#F4F6F4] text-[#5A6A5E]',
+    )}>
+      {tipoAcesso === 'admin' ? 'Administrador' : 'Analista'}
+    </span>
   )
 }
 
@@ -90,13 +114,13 @@ export default function AnalistasPage() {
     fetchAnalistas()
   }, [fetchAnalistas])
 
-  async function handleSave(nome: string, email: string | null) {
+  async function handleSave(nome: string, email: string | null, tipoAcesso: TipoAcessoAnalista) {
     try {
       if (editando === 'novo') {
-        await createAnalista(nome, email)
+        await createAnalista(nome, email, tipoAcesso)
         success('Analista cadastrado com sucesso!')
       } else if (editando) {
-        await updateAnalista(editando.id, nome, email)
+        await updateAnalista(editando.id, nome, email, tipoAcesso)
         success('Analista atualizado com sucesso!')
       }
       setEditando(null)
@@ -178,7 +202,12 @@ export default function AnalistasPage() {
             <tbody className="divide-y divide-[#F4F6F4]">
               {analistas.map((analista) => (
                 <tr key={analista.id} className="hover:bg-[#F4F6F4]/50 transition-colors">
-                  <td className="px-4 py-3 text-[#1A1A1A] font-medium">{analista.nome}</td>
+                  <td className="px-4 py-3 text-[#1A1A1A] font-medium">
+                    <div className="flex items-center gap-2">
+                      {analista.nome}
+                      <TipoAcessoBadge tipoAcesso={analista.tipoAcesso} />
+                    </div>
+                  </td>
                   <td className="px-4 py-3 text-[#5A6A5E]">{analista.email ?? '—'}</td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-1">

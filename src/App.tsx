@@ -21,6 +21,13 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+/** Redireciona analistas (não-administradores) para /board/peritos — único módulo liberado para eles */
+function RequireAdmin({ children }: { children: React.ReactNode }) {
+  const { isAdmin } = useAuth()
+  if (!isAdmin) return <Navigate to="/board/peritos" replace />
+  return <>{children}</>
+}
+
 function AppRoutes() {
   return (
     <Routes>
@@ -35,13 +42,13 @@ function AppRoutes() {
           </RequireAuth>
         }
       >
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/lotes" element={<LotesPage />} />
-        <Route path="/lotes/novo" element={<NovoLotePage />} />
-        <Route path="/financeiro/cobrancas" element={<CobrancasPage />} />
-        <Route path="/cadastros/peritos"   element={<PeritosPage />} />
-        <Route path="/cadastros/trts"     element={<TRTsPage />} />
-        <Route path="/cadastros/analistas" element={<AnalistasPage />} />
+        <Route path="/" element={<RequireAdmin><Dashboard /></RequireAdmin>} />
+        <Route path="/lotes" element={<RequireAdmin><LotesPage /></RequireAdmin>} />
+        <Route path="/lotes/novo" element={<RequireAdmin><NovoLotePage /></RequireAdmin>} />
+        <Route path="/financeiro/cobrancas" element={<RequireAdmin><CobrancasPage /></RequireAdmin>} />
+        <Route path="/cadastros/peritos"   element={<RequireAdmin><PeritosPage /></RequireAdmin>} />
+        <Route path="/cadastros/trts"     element={<RequireAdmin><TRTsPage /></RequireAdmin>} />
+        <Route path="/cadastros/analistas" element={<RequireAdmin><AnalistasPage /></RequireAdmin>} />
         <Route path="/board/peritos"      element={<BoardPeritosPage />} />
       </Route>
 

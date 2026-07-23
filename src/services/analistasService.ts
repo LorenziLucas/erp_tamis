@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabaseClient'
-import type { Analista } from '../types/analista'
+import type { Analista, TipoAcessoAnalista } from '../types/analista'
 
 interface AnalistaDB {
   id: string
@@ -7,10 +7,11 @@ interface AnalistaDB {
   email: string | null
   user_id: string
   created_at: string
+  tipo_acesso: TipoAcessoAnalista
 }
 
 function dbToAnalista(row: AnalistaDB): Analista {
-  return { id: row.id, nome: row.nome, email: row.email }
+  return { id: row.id, nome: row.nome, email: row.email, tipoAcesso: row.tipo_acesso }
 }
 
 export async function listarAnalistas(): Promise<{ data: Analista[]; error: unknown }> {
@@ -22,20 +23,29 @@ export async function listarAnalistas(): Promise<{ data: Analista[]; error: unkn
   return { data: (data as AnalistaDB[] | null)?.map(dbToAnalista) ?? [], error }
 }
 
-export async function createAnalista(nome: string, email: string | null): Promise<{ data: Analista | null; error: unknown }> {
+export async function createAnalista(
+  nome: string,
+  email: string | null,
+  tipoAcesso: TipoAcessoAnalista,
+): Promise<{ data: Analista | null; error: unknown }> {
   const { data, error } = await supabase
     .from('analistas')
-    .insert({ nome, email })
+    .insert({ nome, email, tipo_acesso: tipoAcesso })
     .select('*')
     .single()
 
   return { data: data ? dbToAnalista(data as AnalistaDB) : null, error }
 }
 
-export async function updateAnalista(id: string, nome: string, email: string | null): Promise<{ error: unknown }> {
+export async function updateAnalista(
+  id: string,
+  nome: string,
+  email: string | null,
+  tipoAcesso: TipoAcessoAnalista,
+): Promise<{ error: unknown }> {
   const { error } = await supabase
     .from('analistas')
-    .update({ nome, email })
+    .update({ nome, email, tipo_acesso: tipoAcesso })
     .eq('id', id)
 
   return { error }

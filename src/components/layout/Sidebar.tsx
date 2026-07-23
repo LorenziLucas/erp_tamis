@@ -22,7 +22,7 @@ interface Props {
 
 export function Sidebar({ collapsed, onToggle }: Props) {
   const count    = useLotesStore((s) => s.lotes.length)
-  const { user, logout } = useAuth()
+  const { user, isAdmin, logout } = useAuth()
   const username = user?.email ?? ''
   const navigate = useNavigate()
 
@@ -33,9 +33,6 @@ export function Sidebar({ collapsed, onToggle }: Props) {
   const isFinanceiroActive = location.pathname.startsWith('/financeiro')
   const isCadastrosActive  = location.pathname.startsWith('/cadastros')
   const isBoardActive      = location.pathname.startsWith('/board')
-
-  // Visibilidade temporária durante a construção do módulo — remover quando liberado para todos.
-  const isBoardVisible = user?.id === 'f220fe11-3324-4b2d-8687-18a1261daa50'
 
   const [loteOpen,       setLoteOpen]       = useState(true)
   const [financeiroOpen, setFinanceiroOpen] = useState(() => location.pathname.startsWith('/financeiro'))
@@ -79,70 +76,72 @@ export function Sidebar({ collapsed, onToggle }: Props) {
       <nav className="flex-1 px-2 py-3 overflow-y-auto">
         {collapsed ? (
           <div className="flex flex-col items-center gap-1">
-            <button
-              onClick={onToggle}
-              title="Gestão de Lotes"
-              className={cn(
-                'w-9 h-9 flex items-center justify-center rounded-md transition-colors',
-                isLoteActive
-                  ? 'bg-white/20 text-[#F5C518]'
-                  : 'text-white/50 hover:text-white hover:bg-white/10',
-              )}
-            >
-              <Layers size={15} />
-            </button>
-
-            <div className="w-6 h-px bg-white/10 my-1" />
-
-            <button
-              onClick={onToggle}
-              title="Gestão Financeira"
-              className={cn(
-                'w-9 h-9 flex items-center justify-center rounded-md transition-colors',
-                isFinanceiroActive
-                  ? 'bg-white/20 text-[#F5C518]'
-                  : 'text-white/50 hover:text-white hover:bg-white/10',
-              )}
-            >
-              <Wallet size={15} />
-            </button>
-
-            <div className="w-6 h-px bg-white/10 my-1" />
-
-            <button
-              onClick={onToggle}
-              title="Cadastros"
-              className={cn(
-                'w-9 h-9 flex items-center justify-center rounded-md transition-colors',
-                isCadastrosActive
-                  ? 'bg-white/20 text-[#F5C518]'
-                  : 'text-white/50 hover:text-white hover:bg-white/10',
-              )}
-            >
-              <FolderOpen size={15} />
-            </button>
-
-            {isBoardVisible && (
+            {isAdmin && (
               <>
-                <div className="w-6 h-px bg-white/10 my-1" />
                 <button
                   onClick={onToggle}
-                  title="Gestão de Peritos"
+                  title="Gestão de Lotes"
                   className={cn(
                     'w-9 h-9 flex items-center justify-center rounded-md transition-colors',
-                    isBoardActive
+                    isLoteActive
                       ? 'bg-white/20 text-[#F5C518]'
                       : 'text-white/50 hover:text-white hover:bg-white/10',
                   )}
                 >
-                  <KanbanSquare size={15} />
+                  <Layers size={15} />
                 </button>
+
+                <div className="w-6 h-px bg-white/10 my-1" />
+
+                <button
+                  onClick={onToggle}
+                  title="Gestão Financeira"
+                  className={cn(
+                    'w-9 h-9 flex items-center justify-center rounded-md transition-colors',
+                    isFinanceiroActive
+                      ? 'bg-white/20 text-[#F5C518]'
+                      : 'text-white/50 hover:text-white hover:bg-white/10',
+                  )}
+                >
+                  <Wallet size={15} />
+                </button>
+
+                <div className="w-6 h-px bg-white/10 my-1" />
+
+                <button
+                  onClick={onToggle}
+                  title="Cadastros"
+                  className={cn(
+                    'w-9 h-9 flex items-center justify-center rounded-md transition-colors',
+                    isCadastrosActive
+                      ? 'bg-white/20 text-[#F5C518]'
+                      : 'text-white/50 hover:text-white hover:bg-white/10',
+                  )}
+                >
+                  <FolderOpen size={15} />
+                </button>
+
+                <div className="w-6 h-px bg-white/10 my-1" />
               </>
             )}
+
+            <button
+              onClick={onToggle}
+              title="Gestão de Peritos"
+              className={cn(
+                'w-9 h-9 flex items-center justify-center rounded-md transition-colors',
+                isBoardActive
+                  ? 'bg-white/20 text-[#F5C518]'
+                  : 'text-white/50 hover:text-white hover:bg-white/10',
+              )}
+            >
+              <KanbanSquare size={15} />
+            </button>
           </div>
         ) : (
           <div className="space-y-1">
-
+            {isAdmin && (
+            <>
             {/* ── Grupo 1: Gestão de Lotes ─────────────────────────────────── */}
             <div>
               <button
@@ -299,25 +298,43 @@ export function Sidebar({ collapsed, onToggle }: Props) {
               )}
             </div>
 
-            {/* ── Grupo 4: Gestão de Peritos (visível apenas durante a construção) ── */}
-            {isBoardVisible && (
-              <div>
-                <NavLink
-                  to="/board/peritos"
-                  className={({ isActive }) =>
-                    cn(
-                      'w-full flex items-center gap-2 px-2.5 py-2 rounded-md transition-colors',
-                      'text-xs font-semibold uppercase tracking-wider',
-                      isActive
-                        ? 'text-[#F5C518] bg-white/10'
-                        : 'text-white/50 hover:text-white hover:bg-white/10',
-                    )
-                  }
-                >
-                  <KanbanSquare size={13} className={cn('shrink-0', isBoardActive ? 'text-[#F5C518]' : 'text-[#F5C518]/60')} />
-                  <span className="flex-1 text-left">Gestão de Peritos</span>
-                </NavLink>
-              </div>
+            {/* ── Grupo 4: Gestão de Peritos ──────────────────────────────────── */}
+            <div>
+              <NavLink
+                to="/board/peritos"
+                className={({ isActive }) =>
+                  cn(
+                    'w-full flex items-center gap-2 px-2.5 py-2 rounded-md transition-colors',
+                    'text-xs font-semibold uppercase tracking-wider',
+                    isActive
+                      ? 'text-[#F5C518] bg-white/10'
+                      : 'text-white/50 hover:text-white hover:bg-white/10',
+                  )
+                }
+              >
+                <KanbanSquare size={13} className={cn('shrink-0', isBoardActive ? 'text-[#F5C518]' : 'text-[#F5C518]/60')} />
+                <span className="flex-1 text-left">Gestão de Peritos</span>
+              </NavLink>
+            </div>
+            </>
+            )}
+
+            {/* ── Analista: apenas Gestão de Peritos, sem cabeçalho de submenu ─── */}
+            {!isAdmin && (
+              <NavLink
+                to="/board/peritos"
+                className={({ isActive }) =>
+                  cn(
+                    'flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm font-medium transition-colors',
+                    isActive
+                      ? 'bg-[#2D7A47] text-white'
+                      : 'text-white/70 hover:text-white hover:bg-white/10',
+                  )
+                }
+              >
+                <KanbanSquare size={15} className="shrink-0 text-[#F5C518]" />
+                Gestão de Peritos
+              </NavLink>
             )}
 
           </div>
@@ -367,33 +384,35 @@ export function Sidebar({ collapsed, onToggle }: Props) {
               </button>
             </div>
 
-            {!confirmClear ? (
-              <button
-                onClick={() => setConfirmClear(true)}
-                className="w-full flex items-center justify-center gap-1.5 text-xs text-white/25 hover:text-red-300 hover:bg-red-500/15 border border-transparent hover:border-red-400/20 rounded-md py-1 transition-colors"
-              >
-                <Trash2 size={10} /> Limpar base de dados
-              </button>
-            ) : (
-              <div className="bg-red-500/15 border border-red-400/30 rounded-md p-2 space-y-1.5">
-                <div className="flex items-center gap-1.5 text-[11px] text-red-300 font-medium">
-                  <AlertTriangle size={11} /> Apagar todos os lotes?
+            {isAdmin && (
+              !confirmClear ? (
+                <button
+                  onClick={() => setConfirmClear(true)}
+                  className="w-full flex items-center justify-center gap-1.5 text-xs text-white/25 hover:text-red-300 hover:bg-red-500/15 border border-transparent hover:border-red-400/20 rounded-md py-1 transition-colors"
+                >
+                  <Trash2 size={10} /> Limpar base de dados
+                </button>
+              ) : (
+                <div className="bg-red-500/15 border border-red-400/30 rounded-md p-2 space-y-1.5">
+                  <div className="flex items-center gap-1.5 text-[11px] text-red-300 font-medium">
+                    <AlertTriangle size={11} /> Apagar todos os lotes?
+                  </div>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => { clearAll(); setConfirmClear(false) }}
+                      className="flex-1 text-[11px] font-semibold bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded py-0.5 transition-colors"
+                    >
+                      Confirmar
+                    </button>
+                    <button
+                      onClick={() => setConfirmClear(false)}
+                      className="flex-1 text-[11px] text-white/50 hover:text-white/70 bg-white/10 rounded py-0.5 transition-colors"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
                 </div>
-                <div className="flex gap-1">
-                  <button
-                    onClick={() => { clearAll(); setConfirmClear(false) }}
-                    className="flex-1 text-[11px] font-semibold bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded py-0.5 transition-colors"
-                  >
-                    Confirmar
-                  </button>
-                  <button
-                    onClick={() => setConfirmClear(false)}
-                    className="flex-1 text-[11px] text-white/50 hover:text-white/70 bg-white/10 rounded py-0.5 transition-colors"
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              </div>
+              )
             )}
           </>
         )}
