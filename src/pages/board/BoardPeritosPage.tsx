@@ -26,6 +26,9 @@ const STATUS_COLORS: Record<BoardStatus, string> = {
   entrega:      '#1D9E75',
 }
 
+const FLUXO_STATUS: BoardStatus[]    = ['analise_1', 'analise_2', 'padronizacao', 'entrega']
+const CADASTRO_STATUS: BoardStatus[] = ['nao_ativo', 'ativo']
+
 function initials(nome: string): string {
   const parts = nome.trim().split(/\s+/).filter(Boolean)
   if (parts.length === 0) return '?'
@@ -1024,6 +1027,7 @@ export default function BoardPeritosPage() {
   const [query, setQuery] = useState('')
   const [activeRegion, setActiveRegion] = useState('')
   const [collapsedStatuses, setCollapsedStatuses] = useState<Set<BoardStatus>>(new Set())
+  const [cadastroExpandido, setCadastroExpandido] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [mesAlvo, setMesAlvo] = useState<string | null>(null)
   const [mesCustomAtivo, setMesCustomAtivo] = useState(false)
@@ -1105,11 +1109,17 @@ export default function BoardPeritosPage() {
     }))
   }, [filtered])
 
+  const gruposFluxo    = useMemo(() => grouped.filter((g) => FLUXO_STATUS.includes(g.status)), [grouped])
+  const gruposCadastro = useMemo(() => grouped.filter((g) => CADASTRO_STATUS.includes(g.status)), [grouped])
+  const totalCadastro  = useMemo(() => gruposCadastro.reduce((sum, g) => sum + g.items.length, 0), [gruposCadastro])
+
   const kpis = useMemo(() => {
+    const itensFluxo = items.filter((p) => FLUXO_STATUS.includes(p.status))
+
     let totalLotes = 0
     let entregueLotes = 0
 
-    items.forEach((p) => {
+    itensFluxo.forEach((p) => {
       const lotes = lotesByPerito[p.id] ?? []
       const relevantes = mesAlvo ? lotes.filter((l) => l.mesRef?.slice(0, 7) === mesAlvo) : lotes
       totalLotes += relevantes.length
@@ -1137,7 +1147,7 @@ export default function BoardPeritosPage() {
 
     const contarEmAnalise = (status: 'analise_1' | 'analise_2') => {
       let count = 0
-      items.forEach((p) => {
+      itensFluxo.forEach((p) => {
         if (p.status !== status) return
         const pendentes = (lotesByPerito[p.id] ?? []).filter((l) => !l.entregue)
         if (pendentes.length === 0) return
@@ -1285,19 +1295,57 @@ export default function BoardPeritosPage() {
       {/* ── Conteúdo: por status ou por mês ──────────────────────────────────── */}
       {(!loading || items.length > 0) && (
         view === 'status' ? (
-          <div className="space-y-3">
-            {grouped.map((g) => (
-              <StatusSection
-                key={g.status}
-                status={g.status}
-                label={g.label}
-                items={g.items}
-                collapsed={collapsedStatuses.has(g.status)}
-                mesAlvo={mesAlvo}
-                onToggle={() => toggleSection(g.status)}
-                onOpenPerito={setSelectedId}
-              />
-            ))}
+          <div className="space-y-5">
+            <div className="space-y-3">
+              <div className="text-xs font-semibold text-[#5A6A5E] uppercase tracking-wide">Fluxo de Análise</div>
+              {gruposFluxo.map((g) => (
+                <StatusSection
+                  key={g.status}
+                  status={g.status}
+                  label={g.label}
+                  items={g.items}
+                  collapsed={collapsedStatuses.has(g.status)}
+                  mesAlvo={mesAlvo}
+                  onToggle={() => toggleSection(g.status)}
+                  onOpenPerito={setSelectedId}
+                />
+              ))}
+            </div>
+
+            <div className="space-y-3">
+              <div className="text-xs font-semibold text-[#5A6A5E] uppercase tracking-wide">Cadastro Geral</div>
+
+              <button
+                onClick={() => setCadastroExpandido((v) => !v)}
+                className="w-full flex items-center gap-2.5 px-4 py-3 bg-white border border-[#D4DAD6] rounded-xl hover:bg-[#F4F6F4] transition-colors"
+              >
+                <span className="text-sm font-medium text-[#1A1A1A]">Ativos · Não ativos</span>
+                <span className="flex-1" />
+                <span className="text-xs text-[#5A6A5E]">
+                  {totalCadastro} perito{totalCadastro !== 1 ? 's' : ''}
+                </span>
+                {cadastroExpandido
+                  ? <ChevronDown size={14} className="text-[#9AA4A0]" />
+                  : <ArrowRight size={14} className="text-[#9AA4A0]" />}
+              </button>
+
+              {cadastroExpandido && (
+                <div className="space-y-3">
+                  {gruposCadastro.map((g) => (
+                    <StatusSection
+                      key={g.status}
+                      status={g.status}
+                      label={g.label}
+                      items={g.items}
+                      collapsed={collapsedStatuses.has(g.status)}
+                      mesAlvo={mesAlvo}
+                      onToggle={() => toggleSection(g.status)}
+                      onOpenPerito={setSelectedId}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         ) : (
           <VisaoPorMes peritos={filtered} mesAlvo={mesAlvo} />
