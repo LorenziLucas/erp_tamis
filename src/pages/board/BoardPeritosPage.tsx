@@ -27,7 +27,7 @@ const STATUS_COLORS: Record<BoardStatus, string> = {
 }
 
 const FLUXO_STATUS: BoardStatus[]    = ['analise_1', 'analise_2', 'padronizacao', 'entrega']
-const CADASTRO_STATUS: BoardStatus[] = ['nao_ativo', 'ativo']
+const CADASTRO_STATUS: BoardStatus[] = ['ativo', 'nao_ativo']
 
 function initials(nome: string): string {
   const parts = nome.trim().split(/\s+/).filter(Boolean)
@@ -1110,76 +1110,39 @@ export default function BoardPeritosPage() {
   }, [filtered])
 
   const gruposFluxo    = useMemo(() => grouped.filter((g) => FLUXO_STATUS.includes(g.status)), [grouped])
-  const gruposCadastro = useMemo(() => grouped.filter((g) => CADASTRO_STATUS.includes(g.status)), [grouped])
+  const gruposCadastro = useMemo(
+    () => CADASTRO_STATUS.map((status) => grouped.find((g) => g.status === status)!),
+    [grouped],
+  )
   const totalCadastro  = useMemo(() => gruposCadastro.reduce((sum, g) => sum + g.items.length, 0), [gruposCadastro])
 
   const kpis = useMemo(() => {
-    const itensFluxo = items.filter((p) => FLUXO_STATUS.includes(p.status))
-
-    let totalLotes = 0
-    let entregueLotes = 0
-
-    itensFluxo.forEach((p) => {
-      const lotes = lotesByPerito[p.id] ?? []
-      const relevantes = mesAlvo ? lotes.filter((l) => l.mesRef?.slice(0, 7) === mesAlvo) : lotes
-      totalLotes += relevantes.length
-      entregueLotes += relevantes.filter((l) => l.entregue).length
-    })
-
-    // "Em análise" não soma todos os lotes do perito: cada perito representa,
-    // no máximo, 1 lote (o pendente mais próximo do mês de referência) — pois
-    // na prática só há um lote sendo trabalhado por vez, e peritos com muitos
-    // lotes históricos (já entregues) não devem inflar o KPI. A "distância"
-    // ao mês de referência só decide QUAL lote pendente representa o perito
-    // (o mais próximo, com prioridade para o mês exato); a contribuição para
-    // a contagem é sempre 0 (sem pendente) ou 1 (com pendente).
-    const mesReferencia = mesAlvo ?? (() => {
-      const hoje = new Date()
-      return `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`
-    })()
-    const [anoRef, numMesRef] = mesReferencia.split('-').map(Number)
-
-    const distanciaAoMesRef = (mesRef: string | undefined) => {
-      if (!mesRef) return Infinity
-      const [ano, mes] = mesRef.split('-').map(Number)
-      return Math.abs((ano * 12 + mes) - (anoRef * 12 + numMesRef))
+    const lotesRelevantes = (peritoId: string) => {
+      const lotes = lotesByPerito[peritoId] ?? []
+      return mesAlvo ? lotes.filter((l) => l.mesRef?.slice(0, 7) === mesAlvo) : lotes
     }
 
-    const contarEmAnalise = (status: 'analise_1' | 'analise_2') => {
-      let count = 0
-      itensFluxo.forEach((p) => {
-        if (p.status !== status) return
-        const pendentes = (lotesByPerito[p.id] ?? []).filter((l) => !l.entregue)
-        if (pendentes.length === 0) return
-
-        // Escolhe o lote pendente que representa este perito no KPI: o mais
-        // próximo do mês de referência (exato = distância 0).
-        pendentes.reduce((melhor, l) =>
-          distanciaAoMesRef(l.mesRef?.slice(0, 7)) < distanciaAoMesRef(melhor.mesRef?.slice(0, 7)) ? l : melhor
-        )
-        count += 1
-      })
-      return count
-    }
-
-    const em1aAnalise = contarEmAnalise('analise_1')
-    const em2aAnalise = contarEmAnalise('analise_2')
-
-    const itensAtivos = items.filter((p) => p.status === 'ativo')
-    let pendentesAtivos = 0
-    itensAtivos.forEach((p) => {
-      const lotes = lotesByPerito[p.id] ?? []
-      const relevantes = mesAlvo ? lotes.filter((l) => l.mesRef?.slice(0, 7) === mesAlvo) : lotes
-      pendentesAtivos += relevantes.filter((l) => !l.entregue).length
+    let provisionamento = 0
+    filtered.forEach((p) => {
+      if (!FLUXO_STATUS.includes(p.status) && p.status !== 'ativo') return
+      provisionamento += lotesRelevantes(p.id).filter((l) => !l.entregue).length
     })
+
+    let entregueTotal = 0
+    filtered.forEach((p) => {
+      entregueTotal += lotesRelevantes(p.id).filter((l) => l.entregue).length
+    })
+
+    const em1aAnalise = filtered.filter((p) => p.status === 'analise_1').length
+    const em2aAnalise = filtered.filter((p) => p.status === 'analise_2').length
 
     return {
-      provisionamento: (totalLotes - entregueLotes) + pendentesAtivos,
+      provisionamento,
       em1aAnalise,
       em2aAnalise,
-      entregueTotal: entregueLotes,
+      entregueTotal,
     }
-  }, [items, lotesByPerito, mesAlvo])
+  }, [filtered, lotesByPerito, mesAlvo])
 
   const selected = useMemo(() => items.find((i) => i.id === selectedId) ?? null, [items, selectedId])
 
@@ -1205,9 +1168,9 @@ export default function BoardPeritosPage() {
         </div>
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
           <KpiCard label="Provisionamento" value={kpis.provisionamento} color="blue"   icon={FileText}   sub="lotes a fazer" />
-          <KpiCard label="Em 1ª análise"   value={kpis.em1aAnalise}     color="purple" icon={Clock}      sub="lotes" />
-          <KpiCard label="Em 2ª análise"   value={kpis.em2aAnalise}     color="teal"   icon={Clock}      sub="lotes" />
           <KpiCard label="Entregues"       value={kpis.entregueTotal}   color="green"  icon={TrendingUp} sub="lotes" />
+          <KpiCard label="Em 1ª análise"   value={kpis.em1aAnalise}     color="purple" icon={Clock}      sub="peritos" />
+          <KpiCard label="Em 2ª análise"   value={kpis.em2aAnalise}     color="teal"   icon={Clock}      sub="peritos" />
         </div>
       </div>
 
