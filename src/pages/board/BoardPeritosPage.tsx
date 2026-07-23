@@ -1120,11 +1120,20 @@ export default function BoardPeritosPage() {
       return mesAlvo ? lotes.filter((l) => l.mesRef?.slice(0, 7) === mesAlvo) : lotes
     }
 
+    const semFiltro = !query.trim() && !activeRegion && !mesAlvo
+
     let provisionamento = 0
-    filtered.forEach((p) => {
-      if (!FLUXO_STATUS.includes(p.status) && p.status !== 'ativo') return
-      provisionamento += lotesRelevantes(p.id).length
-    })
+    if (semFiltro) {
+      items.forEach((p) => {
+        if (!FLUXO_STATUS.includes(p.status) && p.status !== 'ativo') return
+        provisionamento += (lotesByPerito[p.id] ?? []).filter((l) => !l.entregue).length
+      })
+    } else {
+      filtered.forEach((p) => {
+        if (!FLUXO_STATUS.includes(p.status) && p.status !== 'ativo') return
+        provisionamento += lotesRelevantes(p.id).length
+      })
+    }
 
     let entregueTotal = 0
     filtered.forEach((p) => {
@@ -1136,11 +1145,12 @@ export default function BoardPeritosPage() {
 
     return {
       provisionamento,
+      provisionamentoSub: semFiltro ? 'lotes a fazer' : 'lotes no período',
       em1aAnalise:   mesEhFuturo ? null : em1aAnalise,
       em2aAnalise:   mesEhFuturo ? null : em2aAnalise,
       entregueTotal: mesEhFuturo ? null : entregueTotal,
     }
-  }, [filtered, lotesByPerito, mesAlvo, mesEhFuturo])
+  }, [items, filtered, lotesByPerito, mesAlvo, mesEhFuturo, query, activeRegion])
 
   const selected = useMemo(() => items.find((i) => i.id === selectedId) ?? null, [items, selectedId])
 
@@ -1165,7 +1175,7 @@ export default function BoardPeritosPage() {
           </p>
         </div>
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-          <KpiCard label="Provisionamento" value={kpis.provisionamento}        color="blue"   icon={FileText}   sub="lotes no período" />
+          <KpiCard label="Provisionamento" value={kpis.provisionamento}        color="blue"   icon={FileText}   sub={kpis.provisionamentoSub} />
           <KpiCard label="Entregues"       value={kpis.entregueTotal ?? '—'}   color="green"  icon={TrendingUp} sub="lotes" />
           <KpiCard label="Em 1ª análise"   value={kpis.em1aAnalise ?? '—'}     color="purple" icon={Clock}      sub="peritos" />
           <KpiCard label="Em 2ª análise"   value={kpis.em2aAnalise ?? '—'}     color="teal"   icon={Clock}      sub="peritos" />
