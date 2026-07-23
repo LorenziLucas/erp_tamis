@@ -15,16 +15,7 @@ import type { BoardPerito, BoardStatus, BoardLote, BoardComentario, BoardHistori
 import { TRT_OPTIONS } from '../../types'
 import { cn } from '../../lib/utils'
 import VisaoPorMes from './VisaoPorMes'
-import { regionBadgeClasses } from './boardUtils'
-
-const STATUS_COLORS: Record<BoardStatus, string> = {
-  nao_ativo:    '#9AA4A0',
-  ativo:        '#1B4D2E',
-  analise_1:    '#534AB7',
-  analise_2:    '#D85A30',
-  padronizacao: '#185FA5',
-  entrega:      '#1D9E75',
-}
+import { regionBadgeClasses, STATUS_COLORS } from './boardUtils'
 
 const FLUXO_STATUS: BoardStatus[]    = ['analise_1', 'analise_2', 'padronizacao', 'entrega']
 const CADASTRO_STATUS: BoardStatus[] = ['ativo', 'nao_ativo']

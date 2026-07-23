@@ -3,7 +3,8 @@ import { ChevronDown, ChevronRight as ArrowRight } from 'lucide-react'
 import { useBoardLotesStore } from '../../store/boardLotesStore'
 import { useToast } from '../../components/ui/Toast'
 import { ProgressBar } from './BoardPeritosPage'
-import { regionBadgeClasses } from './boardUtils'
+import { regionBadgeClasses, statusBadgeClasses } from './boardUtils'
+import { BOARD_STATUS } from '../../types/board'
 import type { BoardPerito, BoardLote } from '../../types/board'
 import { cn } from '../../lib/utils'
 
@@ -130,6 +131,9 @@ export default function VisaoPorMes({
                     </span>
                     <span className={cn('px-2 py-0.5 rounded-full text-[11px] font-medium shrink-0', regionBadgeClasses(perito.regiao))}>
                       {perito.regiao}
+                    </span>
+                    <span className={cn('px-2 py-0.5 rounded-full text-[11px] font-medium shrink-0', statusBadgeClasses(perito.status))}>
+                      {BOARD_STATUS.find((s) => s.value === perito.status)?.label ?? perito.status}
                     </span>
                     <span className="text-xs text-[#5A6A5E] flex-1 truncate">
                       {lote.numero}º LOTE · {lote.tipo ?? '—'} - {lote.formato ?? '—'}
