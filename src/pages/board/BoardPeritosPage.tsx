@@ -1116,6 +1116,13 @@ export default function BoardPeritosPage() {
   )
   const totalCadastro  = useMemo(() => gruposCadastro.reduce((sum, g) => sum + g.items.length, 0), [gruposCadastro])
 
+  const mesEhFuturo = useMemo(() => {
+    if (!mesAlvo) return false
+    const [anoAlvo, numMesAlvo] = mesAlvo.split('-').map(Number)
+    const [anoAtual, numMesAtual] = mesAtual.split('-').map(Number)
+    return (anoAlvo * 12 + numMesAlvo) > (anoAtual * 12 + numMesAtual)
+  }, [mesAlvo, mesAtual])
+
   const kpis = useMemo(() => {
     const lotesRelevantes = (peritoId: string) => {
       const lotes = lotesByPerito[peritoId] ?? []
@@ -1138,11 +1145,11 @@ export default function BoardPeritosPage() {
 
     return {
       provisionamento,
-      em1aAnalise,
-      em2aAnalise,
-      entregueTotal,
+      em1aAnalise:   mesEhFuturo ? null : em1aAnalise,
+      em2aAnalise:   mesEhFuturo ? null : em2aAnalise,
+      entregueTotal: mesEhFuturo ? null : entregueTotal,
     }
-  }, [filtered, lotesByPerito, mesAlvo])
+  }, [filtered, lotesByPerito, mesAlvo, mesEhFuturo])
 
   const selected = useMemo(() => items.find((i) => i.id === selectedId) ?? null, [items, selectedId])
 
@@ -1167,10 +1174,10 @@ export default function BoardPeritosPage() {
           </p>
         </div>
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-          <KpiCard label="Provisionamento" value={kpis.provisionamento} color="blue"   icon={FileText}   sub="lotes no período" />
-          <KpiCard label="Entregues"       value={kpis.entregueTotal}   color="green"  icon={TrendingUp} sub="lotes" />
-          <KpiCard label="Em 1ª análise"   value={kpis.em1aAnalise}     color="purple" icon={Clock}      sub="peritos" />
-          <KpiCard label="Em 2ª análise"   value={kpis.em2aAnalise}     color="teal"   icon={Clock}      sub="peritos" />
+          <KpiCard label="Provisionamento" value={kpis.provisionamento}        color="blue"   icon={FileText}   sub="lotes no período" />
+          <KpiCard label="Entregues"       value={kpis.entregueTotal ?? '—'}   color="green"  icon={TrendingUp} sub="lotes" />
+          <KpiCard label="Em 1ª análise"   value={kpis.em1aAnalise ?? '—'}     color="purple" icon={Clock}      sub="peritos" />
+          <KpiCard label="Em 2ª análise"   value={kpis.em2aAnalise ?? '—'}     color="teal"   icon={Clock}      sub="peritos" />
         </div>
       </div>
 
