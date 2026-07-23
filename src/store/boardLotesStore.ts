@@ -6,6 +6,14 @@ import {
   atualizarBoardLote,
   deletarBoardLote,
 } from '../services/boardLotesService'
+import { registrarHistorico } from '../services/boardHistoricoService'
+import { useAuthStore } from './authStore'
+
+function formatMesAno(mesRef: string | null): string {
+  if (!mesRef) return '—'
+  const [ano, mes] = mesRef.split('-')
+  return `${mes}/${ano}`
+}
 
 interface BoardLotesState {
   lotesByPerito: Record<string, BoardLote[]>
@@ -56,6 +64,9 @@ export const useBoardLotesStore = create<BoardLotesState>((set) => ({
   },
 
   updateLote: async (boardPeritoId, id, updates) => {
+    const loteAnterior = (useBoardLotesStore.getState().lotesByPerito[boardPeritoId] ?? []).find((l) => l.id === id)
+    const foiEntregueAgora = updates.entregue === true && loteAnterior?.entregue === false
+
     const { error } = await atualizarBoardLote(id, updates)
     if (error) {
       const message = String(error)
@@ -70,6 +81,16 @@ export const useBoardLotesStore = create<BoardLotesState>((set) => ({
         ),
       },
     }))
+
+    if (foiEntregueAgora && loteAnterior) {
+      const autorEmail = useAuthStore.getState().username || null
+      registrarHistorico(
+        boardPeritoId,
+        'lote_entregue',
+        `concluiu ${loteAnterior.numero}º lote — ${formatMesAno(loteAnterior.mesRef)}`,
+        autorEmail,
+      )
+    }
   },
 
   deleteLote: async (boardPeritoId, id) => {

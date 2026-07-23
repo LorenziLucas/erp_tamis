@@ -20,6 +20,7 @@ export interface BoardPerito {
   mesRef: string | null
   ordem: number
   planilhaUrl: string | null
+  statusChangedAt: string
 }
 
 export const BOARD_STATUS: { value: BoardStatus; label: string }[] = [
@@ -51,4 +52,13 @@ export interface BoardComentario {
   mencionados: string[]
   createdAt: string
   updatedAt: string
+}
+
+export interface BoardHistorico {
+  id: string
+  boardPeritoId: string
+  autorEmail: string | null
+  tipo: string
+  descricao: string
+  createdAt: string
 }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Search, ChevronDown, ChevronRight as ArrowRight, X, ArrowRightCircle, Plus, Trash2, Pencil, FileSpreadsheet, FileText, Clock, TrendingUp } from 'lucide-react'
+import { Search, ChevronDown, ChevronRight as ArrowRight, X, ArrowRightCircle, Plus, Trash2, Pencil, FileSpreadsheet, FileText, Clock, TrendingUp, ArrowRightLeft, CheckCircle2, UserPlus, UserMinus } from 'lucide-react'
 import { useBoardPeritosStore } from '../../store/boardPeritosStore'
 import { useBoardLotesStore } from '../../store/boardLotesStore'
 import { useAnalistasStore } from '../../store/analistasStore'
@@ -11,7 +11,7 @@ import { Button } from '../../components/ui/Button'
 import { Input, Select, FormField, Textarea } from '../../components/ui/Input'
 import { KpiCard } from '../../components/ui/Card'
 import { BOARD_STATUS, TIPO_OPTIONS, FORMATO_OPTIONS } from '../../types/board'
-import type { BoardPerito, BoardStatus, BoardLote, BoardComentario } from '../../types/board'
+import type { BoardPerito, BoardStatus, BoardLote, BoardComentario, BoardHistorico } from '../../types/board'
 import { TRT_OPTIONS } from '../../types'
 import { cn } from '../../lib/utils'
 import VisaoPorMes from './VisaoPorMes'
@@ -64,6 +64,39 @@ function formatDataHora(iso: string): string {
   return new Date(iso).toLocaleString('pt-BR', {
     day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
   })
+}
+
+function diasDesde(iso: string): number {
+  const inicio = new Date(iso).getTime()
+  const agora = Date.now()
+  return Math.max(0, Math.floor((agora - inicio) / (1000 * 60 * 60 * 24)))
+}
+
+function TempoNaEtapaBadge({ perito }: { perito: BoardPerito }) {
+  const dias = diasDesde(perito.statusChangedAt)
+  const classes = dias <= 5
+    ? 'bg-emerald-50 text-emerald-700'
+    : dias <= 10
+      ? 'bg-amber-50 text-amber-700'
+      : 'bg-red-50 text-red-700'
+  const label = statusLabelOf(perito.status)
+  return (
+    <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium', classes)}>
+      <Clock size={11} />
+      {dias} {dias === 1 ? 'dia' : 'dias'} em {label}
+    </span>
+  )
+}
+
+function statusLabelOf(status: BoardStatus): string {
+  return BOARD_STATUS.find((s) => s.value === status)?.label ?? status
+}
+
+const HISTORICO_ICONS: Record<string, typeof ArrowRightLeft> = {
+  status:         ArrowRightLeft,
+  lote_entregue:  CheckCircle2,
+  analista_add:   UserPlus,
+  analista_remove: UserMinus,
 }
 
 function renderTextoComMencoes(texto: string) {
@@ -645,10 +678,16 @@ function AnalistasVinculados({ boardPeritoId }: { boardPeritoId: string }) {
 
 // ── Comentários (histórico de atividade) ───────────────────────────────────────────
 
+type FeedItem =
+  | { tipo: 'comentario'; createdAt: string; comentario: BoardComentario }
+  | { tipo: 'historico'; createdAt: string; historico: BoardHistorico }
+
 function ComentariosSection({ boardPeritoId }: { boardPeritoId: string }) {
   const { user } = useAuth()
   const comentarios = useBoardComentariosStore((s) => s.comentariosByPerito[boardPeritoId])
   const { fetchComentarios, addComentario, updateComentario, deleteComentario } = useBoardComentariosStore()
+  const historico = useBoardPeritosStore((s) => s.historicoByPerito[boardPeritoId])
+  const fetchHistorico = useBoardPeritosStore((s) => s.fetchHistorico)
   const analistasCadastrados = useAnalistasStore((s) => s.analistas)
   const { success, error: toastError } = useToast()
 
@@ -662,9 +701,20 @@ function ComentariosSection({ boardPeritoId }: { boardPeritoId: string }) {
 
   useEffect(() => {
     fetchComentarios(boardPeritoId)
-  }, [boardPeritoId, fetchComentarios])
+    fetchHistorico(boardPeritoId)
+  }, [boardPeritoId, fetchComentarios, fetchHistorico])
 
-  const lista = comentarios ?? []
+  const feed = useMemo<FeedItem[]>(() => {
+    const itensComentario: FeedItem[] = (comentarios ?? []).map((c) => ({
+      tipo: 'comentario', createdAt: c.createdAt, comentario: c,
+    }))
+    const itensHistorico: FeedItem[] = (historico ?? []).map((h) => ({
+      tipo: 'historico', createdAt: h.createdAt, historico: h,
+    }))
+    return [...itensComentario, ...itensHistorico].sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    )
+  }, [comentarios, historico])
 
   const mentionMatch = texto.match(/@(\w*)$/)
   const mentionQuery = mentionMatch ? mentionMatch[1].toLowerCase() : null
@@ -731,11 +781,27 @@ function ComentariosSection({ boardPeritoId }: { boardPeritoId: string }) {
     <div className="space-y-3">
       <div className="text-xs font-semibold text-[#5A6A5E] uppercase tracking-wide">Comentários</div>
 
-      {lista.length === 0 ? (
-        <p className="text-xs text-[#9AA4A0]">Nenhum comentário ainda.</p>
+      {feed.length === 0 ? (
+        <p className="text-xs text-[#9AA4A0]">Nenhuma atividade ainda.</p>
       ) : (
         <div className="space-y-3">
-          {lista.map((c) => {
+          {feed.map((item) => {
+            if (item.tipo === 'historico') {
+              const h = item.historico
+              const Icon = HISTORICO_ICONS[h.tipo] ?? ArrowRightLeft
+              const autorNome = resolveAutorNome(h.autorEmail, analistasCadastrados)
+              const autorLabel = autorNome ?? (h.autorEmail ?? 'Alguém')
+              return (
+                <div key={h.id} className="flex items-center gap-2 pl-1">
+                  <Icon size={12} className="text-[#9AA4A0] shrink-0" />
+                  <span className="text-xs text-[#9AA4A0] truncate">
+                    {autorLabel} {h.descricao} · {formatDataHora(h.createdAt)}
+                  </span>
+                </div>
+              )
+            }
+
+            const c = item.comentario
             const autorNome = resolveAutorNome(c.autorEmail, analistasCadastrados)
             const autorLabel = autorNome ? `@${autorNome}` : (c.autorEmail ?? 'Usuário')
             return (
@@ -877,11 +943,12 @@ function DetailModal({
               <div className="text-sm font-semibold text-[#1A1A1A] truncate">{perito.nome}</div>
               <PlanilhaControleIcon perito={perito} />
             </div>
-            <div className="flex items-center gap-2 mt-0.5">
+            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
               <span className={cn('px-2 py-0.5 rounded-full text-[11px] font-medium', regionBadgeClasses(perito.regiao))}>
                 {perito.regiao}
               </span>
               <span className="text-xs text-[#5A6A5E]">{entregue}/{total} lotes entregues</span>
+              <TempoNaEtapaBadge perito={perito} />
             </div>
           </div>
         </div>

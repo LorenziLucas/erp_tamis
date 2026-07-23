@@ -13,6 +13,7 @@ interface BoardPeritoDB {
   mes_ref: string | null
   ordem: number
   planilha_url: string | null
+  status_changed_at: string
   user_id: string
   created_at: string
   updated_at: string
@@ -20,17 +21,18 @@ interface BoardPeritoDB {
 
 function dbToBoardPerito(row: BoardPeritoDB): BoardPerito {
   return {
-    id:           row.id,
-    peritoId:     row.perito_id,
-    nome:         row.nome,
-    regiao:       row.regiao,
-    status:       row.status,
-    analista:     row.analista,
-    provisionado: row.provisionado,
-    entregue:     row.entregue,
-    mesRef:       row.mes_ref,
-    ordem:        row.ordem,
-    planilhaUrl:  row.planilha_url,
+    id:              row.id,
+    peritoId:        row.perito_id,
+    nome:            row.nome,
+    regiao:          row.regiao,
+    status:          row.status,
+    analista:        row.analista,
+    provisionado:    row.provisionado,
+    entregue:        row.entregue,
+    mesRef:          row.mes_ref,
+    ordem:           row.ordem,
+    planilhaUrl:     row.planilha_url,
+    statusChangedAt: row.status_changed_at,
   }
 }
 
@@ -47,18 +49,20 @@ export async function listarBoardPeritos(): Promise<{ data: BoardPerito[]; error
 export async function atualizarBoardPerito(
   id: string,
   updates: Partial<{
-    status:       BoardStatus
-    provisionado: number
-    entregue:     number
-    regiao:       string
-    analista:     string | null
-    ordem:        number
-    planilhaUrl:  string | null
+    status:          BoardStatus
+    provisionado:    number
+    entregue:        number
+    regiao:          string
+    analista:        string | null
+    ordem:           number
+    planilhaUrl:     string | null
+    statusChangedAt: string
   }>,
 ): Promise<{ error: unknown }> {
-  const { planilhaUrl, ...rest } = updates
+  const { planilhaUrl, statusChangedAt, ...rest } = updates
   const dbUpdates: Record<string, unknown> = { ...rest }
   if ('planilhaUrl' in updates) dbUpdates.planilha_url = planilhaUrl
+  if ('statusChangedAt' in updates) dbUpdates.status_changed_at = statusChangedAt
 
   const { error } = await supabase
     .from('board_peritos')

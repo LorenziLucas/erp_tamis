@@ -1,5 +1,6 @@
 import { create } from 'zustand'
-import type { BoardPerito, BoardStatus } from '../types/board'
+import type { BoardHistorico, BoardPerito, BoardStatus } from '../types/board'
+import { BOARD_STATUS } from '../types/board'
 import {
   listarBoardPeritos,
   atualizarBoardPerito,
@@ -9,7 +10,13 @@ import {
   desvincularAnalista,
 } from '../services/boardPeritosService'
 import { notificarEmail } from '../services/notificacoesService'
+import { registrarHistorico, listarHistorico } from '../services/boardHistoricoService'
 import { useAnalistasStore } from './analistasStore'
+import { useAuthStore } from './authStore'
+
+function statusLabel(status: BoardStatus): string {
+  return BOARD_STATUS.find((s) => s.value === status)?.label ?? status
+}
 
 interface BoardPeritosState {
   items:   BoardPerito[]
@@ -17,6 +24,7 @@ interface BoardPeritosState {
   error:   string | null
 
   analistasByPerito: Record<string, { id: string; nome: string }[]>
+  historicoByPerito: Record<string, BoardHistorico[]>
 
   fetchBoard: () => Promise<void>
   updateItem: (
@@ -36,6 +44,8 @@ interface BoardPeritosState {
   fetchAnalistasDoPerito: (boardPeritoId: string) => Promise<void>
   addAnalista:    (boardPeritoId: string, analistaId: string) => Promise<void>
   removeAnalista: (boardPeritoId: string, analistaId: string) => Promise<void>
+
+  fetchHistorico: (boardPeritoId: string) => Promise<void>
 }
 
 export const useBoardPeritosStore = create<BoardPeritosState>((set) => ({
@@ -44,6 +54,7 @@ export const useBoardPeritosStore = create<BoardPeritosState>((set) => ({
   error:   null,
 
   analistasByPerito: {},
+  historicoByPerito: {},
 
   fetchBoard: async () => {
     set({ loading: true, error: null })
@@ -53,15 +64,32 @@ export const useBoardPeritosStore = create<BoardPeritosState>((set) => ({
   },
 
   updateItem: async (id, updates) => {
-    const { error } = await atualizarBoardPerito(id, updates)
+    const itemAnterior = useBoardPeritosStore.getState().items.find((i) => i.id === id)
+    const statusMudou = 'status' in updates && !!updates.status && updates.status !== itemAnterior?.status
+
+    const dbUpdates = statusMudou
+      ? { ...updates, statusChangedAt: new Date().toISOString() }
+      : updates
+
+    const { error } = await atualizarBoardPerito(id, dbUpdates)
     if (error) {
       const message = String(error)
       set({ error: message })
       throw new Error(message)
     }
     set((state) => ({
-      items: state.items.map((item) => (item.id === id ? { ...item, ...updates } : item)),
+      items: state.items.map((item) => (item.id === id ? { ...item, ...dbUpdates } : item)),
     }))
+
+    if (statusMudou && itemAnterior && updates.status) {
+      const autorEmail = useAuthStore.getState().username || null
+      registrarHistorico(
+        id,
+        'status',
+        `moveu de ${statusLabel(itemAnterior.status)} para ${statusLabel(updates.status)}`,
+        autorEmail,
+      )
+    }
   },
 
   deleteItem: async (id) => {
@@ -98,9 +126,16 @@ export const useBoardPeritosStore = create<BoardPeritosState>((set) => ({
         html: `<p>Olá ${analista.nome},</p><p>Você foi vinculado ao acompanhamento do perito <strong>${perito.nome}</strong> no ERP Tamis.</p>`,
       })
     }
+
+    if (analista) {
+      const autorEmail = useAuthStore.getState().username || null
+      registrarHistorico(boardPeritoId, 'analista_add', `adicionou ${analista.nome} ao card`, autorEmail)
+    }
   },
 
   removeAnalista: async (boardPeritoId, analistaId) => {
+    const analista = useAnalistasStore.getState().analistas.find((a) => a.id === analistaId)
+
     const { error } = await desvincularAnalista(boardPeritoId, analistaId)
     if (error) {
       const message = String(error)
@@ -113,5 +148,16 @@ export const useBoardPeritosStore = create<BoardPeritosState>((set) => ({
         [boardPeritoId]: (state.analistasByPerito[boardPeritoId] ?? []).filter((a) => a.id !== analistaId),
       },
     }))
+
+    if (analista) {
+      const autorEmail = useAuthStore.getState().username || null
+      registrarHistorico(boardPeritoId, 'analista_remove', `removeu ${analista.nome} do card`, autorEmail)
+    }
+  },
+
+  fetchHistorico: async (boardPeritoId) => {
+    const { data, error } = await listarHistorico(boardPeritoId)
+    if (error) { set({ error: String(error) }); return }
+    set((state) => ({ historicoByPerito: { ...state.historicoByPerito, [boardPeritoId]: data } }))
   },
 }))
