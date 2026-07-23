@@ -15,6 +15,7 @@ import type { BoardPerito, BoardStatus, BoardLote, BoardComentario, BoardHistori
 import { TRT_OPTIONS } from '../../types'
 import { cn } from '../../lib/utils'
 import VisaoPorMes from './VisaoPorMes'
+import { regionBadgeClasses } from './boardUtils'
 
 const STATUS_COLORS: Record<BoardStatus, string> = {
   nao_ativo:    '#9AA4A0',
@@ -23,15 +24,6 @@ const STATUS_COLORS: Record<BoardStatus, string> = {
   analise_2:    '#D85A30',
   padronizacao: '#185FA5',
   entrega:      '#1D9E75',
-}
-
-export function regionBadgeClasses(regiao: string): string {
-  const token = regiao.trim().split(/\s+/)[0] ?? regiao
-  if (token === 'TRT4') return 'bg-[#EAF3ED] text-[#1B4D2E]'
-  if (token === 'TRT6') return 'bg-amber-50 text-amber-700'
-  if (token === 'TRT1') return 'bg-violet-50 text-violet-700'
-  if (token === 'TRT12') return 'bg-[#E6F1FB] text-[#0C447C]'
-  return 'bg-[#F4F6F4] text-[#5A6A5E]'
 }
 
 function initials(nome: string): string {
@@ -472,10 +464,6 @@ function PlanilhaControleIcon({ perito }: { perito: BoardPerito }) {
   const [formOpen, setFormOpen] = useState(false)
   const [url, setUrl] = useState(perito.planilhaUrl ?? '')
   const [saving, setSaving] = useState(false)
-
-  useEffect(() => {
-    setUrl(perito.planilhaUrl ?? '')
-  }, [perito.id, perito.planilhaUrl])
 
   function startEdit() {
     setUrl(perito.planilhaUrl ?? '')
@@ -926,10 +914,6 @@ function DetailModal({
   const [statusChanging, setStatusChanging] = useState(false)
   const [saving, setSaving] = useState(false)
 
-  useEffect(() => {
-    setRegiao(perito.regiao)
-  }, [perito.id, perito.regiao])
-
   async function handleStatusChange(newStatus: BoardStatus) {
     if (newStatus === perito.status) return
     setStatusChanging(true)
@@ -969,7 +953,7 @@ function DetailModal({
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
               <div className="text-sm font-semibold text-[#1A1A1A] truncate">{perito.nome}</div>
-              <PlanilhaControleIcon perito={perito} />
+              <PlanilhaControleIcon key={perito.id} perito={perito} />
             </div>
             <div className="flex items-center gap-2 mt-0.5 flex-wrap">
               <span className={cn('px-2 py-0.5 rounded-full text-[11px] font-medium', regionBadgeClasses(perito.regiao))}>
@@ -1321,7 +1305,7 @@ export default function BoardPeritosPage() {
       )}
 
       {selected && (
-        <DetailModal perito={selected} onClose={() => setSelectedId(null)} />
+        <DetailModal key={selected.id} perito={selected} onClose={() => setSelectedId(null)} />
       )}
     </div>
   )
