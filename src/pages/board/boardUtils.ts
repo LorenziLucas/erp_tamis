@@ -30,3 +30,22 @@ export function regionBadgeClasses(regiao: string): string {
   if (token === 'TRT12') return 'bg-[#E6F1FB] text-[#0C447C]'
   return 'bg-[#F4F6F4] text-[#5A6A5E]'
 }
+
+function chaveMes(mesKey: string): number {
+  const [ano, mes] = mesKey.split('-').map(Number)
+  return ano * 12 + mes
+}
+
+/** true quando periodoDe/periodoAte forem null (sem filtro), ou quando mesRefSlice (YYYY-MM) estiver entre os dois, inclusive */
+export function dentroDoPeriodo(
+  mesRefSlice: string | null | undefined,
+  periodoDe: string | null,
+  periodoAte: string | null,
+): boolean {
+  if (!periodoDe && !periodoAte) return true
+  if (!mesRefSlice) return false
+  const valor = chaveMes(mesRefSlice)
+  if (periodoDe && valor < chaveMes(periodoDe)) return false
+  if (periodoAte && valor > chaveMes(periodoAte)) return false
+  return true
+}

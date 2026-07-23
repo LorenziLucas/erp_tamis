@@ -15,7 +15,7 @@ import type { BoardPerito, BoardStatus, BoardLote, BoardComentario, BoardHistori
 import { TRT_OPTIONS } from '../../types'
 import { cn } from '../../lib/utils'
 import VisaoPorMes from './VisaoPorMes'
-import { regionBadgeClasses, STATUS_COLORS } from './boardUtils'
+import { regionBadgeClasses, STATUS_COLORS, dentroDoPeriodo } from './boardUtils'
 
 const FLUXO_STATUS: BoardStatus[]    = ['analise_1', 'analise_2', 'padronizacao', 'entrega']
 const CADASTRO_STATUS: BoardStatus[] = ['ativo', 'nao_ativo']
@@ -102,10 +102,12 @@ function renderTextoComMencoes(texto: string) {
 
 // ── Progresso do checklist ────────────────────────────────────────────────────
 
-function useChecklistProgress(boardPeritoId: string, mesAlvo: string | null = null) {
+function useChecklistProgress(boardPeritoId: string, periodoDe: string | null = null, periodoAte: string | null = null) {
   const lotes = useBoardLotesStore((s) => s.lotesByPerito[boardPeritoId])
   const list = lotes ?? []
-  const relevantes = mesAlvo ? list.filter((l) => l.mesRef?.slice(0, 7) === mesAlvo) : list
+  const relevantes = (periodoDe || periodoAte)
+    ? list.filter((l) => dentroDoPeriodo(l.mesRef?.slice(0, 7), periodoDe, periodoAte))
+    : list
   const total = relevantes.length
   const entregue = relevantes.filter((l) => l.entregue).length
   return { entregue, total }
@@ -124,8 +126,18 @@ export function ProgressBar({ entregue, total }: { entregue: number; total: numb
 
 // ── Linha de perito ──────────────────────────────────────────────────────────────
 
-function PeritoRow({ perito, mesAlvo, onOpen }: { perito: BoardPerito; mesAlvo: string | null; onOpen: () => void }) {
-  const { entregue, total } = useChecklistProgress(perito.id, mesAlvo)
+function PeritoRow({
+  perito,
+  periodoDe,
+  periodoAte,
+  onOpen,
+}: {
+  perito: BoardPerito
+  periodoDe: string | null
+  periodoAte: string | null
+  onOpen: () => void
+}) {
+  const { entregue, total } = useChecklistProgress(perito.id, periodoDe, periodoAte)
   const analistasVinculados = useBoardPeritosStore((s) => s.analistasByPerito[perito.id])
   const analistasLabel = analistasVinculados && analistasVinculados.length > 0
     ? analistasVinculados.map((a) => a.nome.split(' ')[0]).join(', ')
@@ -166,7 +178,8 @@ function StatusSection({
   label,
   items,
   collapsed,
-  mesAlvo,
+  periodoDe,
+  periodoAte,
   onToggle,
   onOpenPerito,
 }: {
@@ -174,7 +187,8 @@ function StatusSection({
   label: string
   items: BoardPerito[]
   collapsed: boolean
-  mesAlvo: string | null
+  periodoDe: string | null
+  periodoAte: string | null
   onToggle: () => void
   onOpenPerito: (id: string) => void
 }) {
@@ -194,7 +208,7 @@ function StatusSection({
       {!collapsed && items.length > 0 && (
         <div>
           {items.map((p) => (
-            <PeritoRow key={p.id} perito={p} mesAlvo={mesAlvo} onOpen={() => onOpenPerito(p.id)} />
+            <PeritoRow key={p.id} perito={p} periodoDe={periodoDe} periodoAte={periodoAte} onOpen={() => onOpenPerito(p.id)} />
           ))}
         </div>
       )}
@@ -1020,7 +1034,8 @@ export default function BoardPeritosPage() {
   const [collapsedStatuses, setCollapsedStatuses] = useState<Set<BoardStatus>>(new Set())
   const [cadastroExpandido, setCadastroExpandido] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [mesAlvo, setMesAlvo] = useState<string | null>(null)
+  const [periodoDe, setPeriodoDe] = useState<string | null>(null)
+  const [periodoAte, setPeriodoAte] = useState<string | null>(null)
   const [mesCustomAtivo, setMesCustomAtivo] = useState(false)
   const [view, setView] = useState<'status' | 'mes'>('status')
 
@@ -1049,34 +1064,39 @@ export default function BoardPeritosPage() {
     return Array.from(set).sort()
   }, [items])
 
-  const { mesAtual, mesProximo } = useMemo(() => {
+  const { mesAtual, mesProximo, mesMaisTres, mesMaisSeis } = useMemo(() => {
     const now = new Date()
     const ano = now.getFullYear()
     const mes = now.getMonth()
-    const proxima = new Date(ano, mes + 1, 1)
+    const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
     return {
-      mesAtual:   `${ano}-${String(mes + 1).padStart(2, '0')}`,
-      mesProximo: `${proxima.getFullYear()}-${String(proxima.getMonth() + 1).padStart(2, '0')}`,
+      mesAtual:    fmt(new Date(ano, mes, 1)),
+      mesProximo:  fmt(new Date(ano, mes + 1, 1)),
+      mesMaisTres: fmt(new Date(ano, mes + 3, 1)),
+      mesMaisSeis: fmt(new Date(ano, mes + 6, 1)),
     }
   }, [])
 
   const mesShortcuts = [
-    { label: 'Este mês',    value: mesAtual },
-    { label: 'Próximo mês', value: mesProximo },
-    { label: 'Todos',       value: null as string | null },
+    { key: 'este_mes',          label: 'Este mês',            de: mesAtual,               ate: mesAtual },
+    { key: 'proximo_mes',       label: 'Próximo mês',         de: mesProximo,             ate: mesProximo },
+    { key: 'proximo_trimestre', label: 'Próximo trimestre',   de: mesProximo,             ate: mesMaisTres },
+    { key: 'proximo_semestre',  label: 'Próximo semestre',    de: mesProximo,             ate: mesMaisSeis },
+    { key: 'todos',             label: 'Todos',               de: null as string | null,  ate: null as string | null },
   ]
 
-  const mesSelectValue = mesCustomAtivo || (mesAlvo !== null && mesAlvo !== mesAtual && mesAlvo !== mesProximo)
-    ? 'custom'
-    : (mesAlvo ?? '')
+  const mesShortcutAtivo = mesShortcuts.find((s) => s.de === periodoDe && s.ate === periodoAte)
+  const mesSelectValue = mesCustomAtivo || !mesShortcutAtivo ? 'custom' : mesShortcutAtivo.key
 
   function handleMesSelectChange(value: string) {
     if (value === 'custom') {
       setMesCustomAtivo(true)
-    } else {
-      setMesCustomAtivo(false)
-      setMesAlvo(value || null)
+      return
     }
+    setMesCustomAtivo(false)
+    const shortcut = mesShortcuts.find((s) => s.key === value)
+    setPeriodoDe(shortcut?.de ?? null)
+    setPeriodoAte(shortcut?.ate ?? null)
   }
 
   const filtered = useMemo(() => {
@@ -1084,13 +1104,13 @@ export default function BoardPeritosPage() {
     return items.filter((i) => {
       if (activeRegion && i.regiao !== activeRegion) return false
       if (q && !i.nome.toLowerCase().includes(q)) return false
-      if (mesAlvo) {
+      if (periodoDe || periodoAte) {
         const lotes = lotesByPerito[i.id] ?? []
-        if (!lotes.some((l) => l.mesRef?.slice(0, 7) === mesAlvo)) return false
+        if (!lotes.some((l) => dentroDoPeriodo(l.mesRef?.slice(0, 7), periodoDe, periodoAte))) return false
       }
       return true
     })
-  }, [items, query, activeRegion, mesAlvo, lotesByPerito])
+  }, [items, query, activeRegion, periodoDe, periodoAte, lotesByPerito])
 
   const grouped = useMemo(() => {
     return BOARD_STATUS.map((s) => ({
@@ -1108,19 +1128,21 @@ export default function BoardPeritosPage() {
   const totalCadastro  = useMemo(() => gruposCadastro.reduce((sum, g) => sum + g.items.length, 0), [gruposCadastro])
 
   const mesEhFuturo = useMemo(() => {
-    if (!mesAlvo) return false
-    const [anoAlvo, numMesAlvo] = mesAlvo.split('-').map(Number)
+    if (!periodoDe) return false
+    const [anoAlvo, numMesAlvo] = periodoDe.split('-').map(Number)
     const [anoAtual, numMesAtual] = mesAtual.split('-').map(Number)
     return (anoAlvo * 12 + numMesAlvo) > (anoAtual * 12 + numMesAtual)
-  }, [mesAlvo, mesAtual])
+  }, [periodoDe, mesAtual])
 
   const kpis = useMemo(() => {
     const lotesRelevantes = (peritoId: string) => {
       const lotes = lotesByPerito[peritoId] ?? []
-      return mesAlvo ? lotes.filter((l) => l.mesRef?.slice(0, 7) === mesAlvo) : lotes
+      return (periodoDe || periodoAte)
+        ? lotes.filter((l) => dentroDoPeriodo(l.mesRef?.slice(0, 7), periodoDe, periodoAte))
+        : lotes
     }
 
-    const semFiltro = !query.trim() && !activeRegion && !mesAlvo
+    const semFiltro = !query.trim() && !activeRegion && !periodoDe && !periodoAte
 
     let provisionamento = 0
     if (semFiltro) {
@@ -1150,7 +1172,7 @@ export default function BoardPeritosPage() {
       em2aAnalise:   mesEhFuturo ? null : em2aAnalise,
       entregueTotal: mesEhFuturo ? null : entregueTotal,
     }
-  }, [items, filtered, lotesByPerito, mesAlvo, mesEhFuturo, query, activeRegion])
+  }, [items, filtered, lotesByPerito, periodoDe, periodoAte, mesEhFuturo, query, activeRegion])
 
   const selected = useMemo(() => items.find((i) => i.id === selectedId) ?? null, [items, selectedId])
 
@@ -1236,15 +1258,19 @@ export default function BoardPeritosPage() {
           containerClassName="w-auto shrink-0"
         >
           {mesShortcuts.map((opt) => (
-            <option key={opt.label} value={opt.value ?? ''}>{opt.label}</option>
+            <option key={opt.key} value={opt.key}>{opt.label}</option>
           ))}
           <option value="custom">Escolher período…</option>
         </Select>
         {mesSelectValue === 'custom' && (
           <input
             type="month"
-            value={mesAlvo ?? ''}
-            onChange={(e) => setMesAlvo(e.target.value || null)}
+            value={periodoDe ?? ''}
+            onChange={(e) => {
+              const valor = e.target.value || null
+              setPeriodoDe(valor)
+              setPeriodoAte(valor)
+            }}
             className="h-9 px-2.5 rounded-md text-sm border border-[#D4DAD6] bg-white text-[#1A1A1A] focus:outline-none focus:border-[#1B4D2E] focus:ring-1 focus:ring-[#1B4D2E]/30 transition-colors shrink-0"
           />
         )}
@@ -1282,7 +1308,8 @@ export default function BoardPeritosPage() {
                   label={g.label}
                   items={g.items}
                   collapsed={collapsedStatuses.has(g.status)}
-                  mesAlvo={mesAlvo}
+                  periodoDe={periodoDe}
+                  periodoAte={periodoAte}
                   onToggle={() => toggleSection(g.status)}
                   onOpenPerito={setSelectedId}
                 />
@@ -1315,7 +1342,8 @@ export default function BoardPeritosPage() {
                       label={g.label}
                       items={g.items}
                       collapsed={collapsedStatuses.has(g.status)}
-                      mesAlvo={mesAlvo}
+                      periodoDe={periodoDe}
+                      periodoAte={periodoAte}
                       onToggle={() => toggleSection(g.status)}
                       onOpenPerito={setSelectedId}
                     />
@@ -1325,7 +1353,7 @@ export default function BoardPeritosPage() {
             </div>
           </div>
         ) : (
-          <VisaoPorMes peritos={filtered} mesAlvo={mesAlvo} />
+          <VisaoPorMes peritos={filtered} periodoDe={periodoDe} periodoAte={periodoAte} />
         )
       )}
 

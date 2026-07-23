@@ -3,7 +3,7 @@ import { ChevronDown, ChevronRight as ArrowRight } from 'lucide-react'
 import { useBoardLotesStore } from '../../store/boardLotesStore'
 import { useToast } from '../../components/ui/Toast'
 import { ProgressBar } from './BoardPeritosPage'
-import { regionBadgeClasses, statusBadgeClasses } from './boardUtils'
+import { regionBadgeClasses, statusBadgeClasses, dentroDoPeriodo } from './boardUtils'
 import { BOARD_STATUS } from '../../types/board'
 import type { BoardPerito, BoardLote } from '../../types/board'
 import { cn } from '../../lib/utils'
@@ -26,10 +26,12 @@ interface LoteComPerito {
 
 export default function VisaoPorMes({
   peritos,
-  mesAlvo,
+  periodoDe,
+  periodoAte,
 }: {
   peritos: BoardPerito[]
-  mesAlvo: string | null
+  periodoDe: string | null
+  periodoAte: string | null
 }) {
   const lotesByPerito = useBoardLotesStore((s) => s.lotesByPerito)
   const updateLote = useBoardLotesStore((s) => s.updateLote)
@@ -44,7 +46,7 @@ export default function VisaoPorMes({
       const lotes = lotesByPerito[perito.id] ?? []
       lotes.forEach((lote) => {
         const chave = lote.mesRef ? lote.mesRef.slice(0, 7) : 'sem-mes'
-        if (mesAlvo && chave !== mesAlvo) return
+        if (!dentroDoPeriodo(chave === 'sem-mes' ? null : chave, periodoDe, periodoAte)) return
         const lista = porMes.get(chave) ?? []
         lista.push({ perito, lote })
         porMes.set(chave, lista)
@@ -61,7 +63,7 @@ export default function VisaoPorMes({
         a.perito.nome.localeCompare(b.perito.nome) || a.lote.numero - b.lote.numero,
       ),
     }))
-  }, [peritos, lotesByPerito, mesAlvo])
+  }, [peritos, lotesByPerito, periodoDe, periodoAte])
 
   async function handleToggle(item: LoteComPerito) {
     try {
