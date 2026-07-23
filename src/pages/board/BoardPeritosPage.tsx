@@ -66,6 +66,13 @@ function formatDataHora(iso: string): string {
   })
 }
 
+function formatDataHoraCompleta(iso: string): string {
+  const data = new Date(iso)
+  const dataPart = data.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })
+  const horaPart = data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+  return `${dataPart}, ${horaPart}`
+}
+
 function diasDesde(iso: string): number {
   const inicio = new Date(iso).getTime()
   const agora = Date.now()
@@ -699,6 +706,8 @@ function ComentariosSection({ boardPeritoId }: { boardPeritoId: string }) {
   const [editTexto, setEditTexto] = useState('')
   const [savingEdit, setSavingEdit] = useState(false)
 
+  const [showAtividades, setShowAtividades] = useState(false)
+
   useEffect(() => {
     fetchComentarios(boardPeritoId)
     fetchHistorico(boardPeritoId)
@@ -708,13 +717,18 @@ function ComentariosSection({ boardPeritoId }: { boardPeritoId: string }) {
     const itensComentario: FeedItem[] = (comentarios ?? []).map((c) => ({
       tipo: 'comentario', createdAt: c.createdAt, comentario: c,
     }))
+    if (!showAtividades) {
+      return itensComentario.sort(
+        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      )
+    }
     const itensHistorico: FeedItem[] = (historico ?? []).map((h) => ({
       tipo: 'historico', createdAt: h.createdAt, historico: h,
     }))
     return [...itensComentario, ...itensHistorico].sort(
       (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
     )
-  }, [comentarios, historico])
+  }, [comentarios, historico, showAtividades])
 
   const mentionMatch = texto.match(/@(\w*)$/)
   const mentionQuery = mentionMatch ? mentionMatch[1].toLowerCase() : null
@@ -779,10 +793,19 @@ function ComentariosSection({ boardPeritoId }: { boardPeritoId: string }) {
 
   return (
     <div className="space-y-3">
-      <div className="text-xs font-semibold text-[#5A6A5E] uppercase tracking-wide">Comentários</div>
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-xs font-semibold text-[#5A6A5E] uppercase tracking-wide">Comentários e atividade</div>
+        <button
+          type="button"
+          onClick={() => setShowAtividades((v) => !v)}
+          className="text-[11px] font-medium text-[#5A6A5E] hover:text-[#1B4D2E] transition-colors shrink-0"
+        >
+          {showAtividades ? 'Ocultar atividades' : 'Mostrar atividades'}
+        </button>
+      </div>
 
       {feed.length === 0 ? (
-        <p className="text-xs text-[#9AA4A0]">Nenhuma atividade ainda.</p>
+        <p className="text-xs text-[#9AA4A0]">{showAtividades ? 'Nenhuma atividade ainda.' : 'Nenhum comentário ainda.'}</p>
       ) : (
         <div className="space-y-3">
           {feed.map((item) => {
@@ -792,10 +815,15 @@ function ComentariosSection({ boardPeritoId }: { boardPeritoId: string }) {
               const autorNome = resolveAutorNome(h.autorEmail, analistasCadastrados)
               const autorLabel = autorNome ?? (h.autorEmail ?? 'Alguém')
               return (
-                <div key={h.id} className="flex items-center gap-2 pl-1">
-                  <Icon size={12} className="text-[#9AA4A0] shrink-0" />
-                  <span className="text-xs text-[#9AA4A0] truncate">
-                    {autorLabel} {h.descricao} · {formatDataHora(h.createdAt)}
+                <div key={h.id} className="flex flex-col gap-0.5">
+                  <div className="flex items-center gap-2">
+                    <Icon size={12} className="text-[#9AA4A0] shrink-0" />
+                    <span className="text-xs text-[#9AA4A0] truncate">
+                      <span className="font-semibold text-[#5A6A5E]">{autorLabel}</span> {h.descricao}
+                    </span>
+                  </div>
+                  <span className="ml-5 text-xs font-bold underline text-[#1B4D2E]">
+                    {formatDataHoraCompleta(h.createdAt)}
                   </span>
                 </div>
               )
