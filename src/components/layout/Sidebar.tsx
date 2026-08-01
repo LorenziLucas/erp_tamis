@@ -230,7 +230,26 @@ export function Sidebar({ collapsed, onToggle }: Props) {
               )}
             </div>
 
-            {/* ── Grupo 3: Cadastros ────────────────────────────────────────── */}
+            {/* ── Grupo 3: Gestão de Peritos ──────────────────────────────────── */}
+            <div>
+              <NavLink
+                to="/board/peritos"
+                className={({ isActive }) =>
+                  cn(
+                    'w-full flex items-center gap-2 px-2.5 py-2 rounded-md transition-colors',
+                    'text-xs font-semibold uppercase tracking-wider',
+                    isActive
+                      ? 'text-[#F5C518] bg-white/10'
+                      : 'text-white/50 hover:text-white hover:bg-white/10',
+                  )
+                }
+              >
+                <KanbanSquare size={13} className={cn('shrink-0', isBoardActive ? 'text-[#F5C518]' : 'text-[#F5C518]/60')} />
+                <span className="flex-1 text-left">Gestão de Peritos</span>
+              </NavLink>
+            </div>
+
+            {/* ── Grupo 4: Cadastros ────────────────────────────────────────── */}
             <div>
               <button
                 onClick={() => setCadastrosOpen((o) => !o)}
@@ -296,25 +315,6 @@ export function Sidebar({ collapsed, onToggle }: Props) {
                   </NavLink>
                 </div>
               )}
-            </div>
-
-            {/* ── Grupo 4: Gestão de Peritos ──────────────────────────────────── */}
-            <div>
-              <NavLink
-                to="/board/peritos"
-                className={({ isActive }) =>
-                  cn(
-                    'w-full flex items-center gap-2 px-2.5 py-2 rounded-md transition-colors',
-                    'text-xs font-semibold uppercase tracking-wider',
-                    isActive
-                      ? 'text-[#F5C518] bg-white/10'
-                      : 'text-white/50 hover:text-white hover:bg-white/10',
-                  )
-                }
-              >
-                <KanbanSquare size={13} className={cn('shrink-0', isBoardActive ? 'text-[#F5C518]' : 'text-[#F5C518]/60')} />
-                <span className="flex-1 text-left">Gestão de Peritos</span>
-              </NavLink>
             </div>
             </>
             )}
