@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { BoardHistorico, BoardPerito, BoardStatus } from '../types/board'
-import { BOARD_STATUS } from '../types/board'
+import { BOARD_STATUS, FLUXO_STATUS } from '../types/board'
 import {
   listarBoardPeritos,
   atualizarBoardPerito,
@@ -89,6 +89,47 @@ export const useBoardPeritosStore = create<BoardPeritosState>((set) => ({
         `moveu de ${statusLabel(itemAnterior.status)} para ${statusLabel(updates.status)}`,
         autorEmail,
       )
+
+      const statusOrigem  = itemAnterior.status
+      const statusDestino = updates.status
+      if (FLUXO_STATUS.includes(statusOrigem) && FLUXO_STATUS.includes(statusDestino)) {
+        try {
+          if (!useBoardPeritosStore.getState().analistasByPerito[id]) {
+            await useBoardPeritosStore.getState().fetchAnalistasDoPerito(id)
+          }
+          const vinculados = useBoardPeritosStore.getState().analistasByPerito[id] ?? []
+          const analistas  = useAnalistasStore.getState().analistas
+
+          const emailsVinculados = vinculados.map((v) => analistas.find((a) => a.id === v.id)?.email)
+          const emailsAdmins     = analistas.filter((a) => a.tipoAcesso === 'admin').map((a) => a.email)
+
+          const vistos = new Set<string>()
+          const destinatarios: string[] = []
+          for (const email of [...emailsVinculados, ...emailsAdmins]) {
+            if (!email) continue
+            const chave = email.toLowerCase()
+            if (vistos.has(chave)) continue
+            if (autorEmail && chave === autorEmail.toLowerCase()) continue
+            vistos.add(chave)
+            destinatarios.push(email)
+          }
+
+          if (destinatarios.length > 0) {
+            const nomePerito   = itemAnterior.nome
+            const origemLabel  = statusLabel(statusOrigem)
+            const destinoLabel = statusLabel(statusDestino)
+            destinatarios.forEach((to) => {
+              notificarEmail({
+                to,
+                subject: `${nomePerito} avançou para ${destinoLabel}`,
+                html: `<p>O perito <strong>${nomePerito}</strong> foi movido de <strong>${origemLabel}</strong> para <strong>${destinoLabel}</strong>.</p><p>Movimentação realizada por ${autorEmail ?? 'usuário desconhecido'}.</p>`,
+              })
+            })
+          }
+        } catch (err) {
+          console.warn('[boardPeritosStore] Falha ao notificar movimentação de status:', err)
+        }
+      }
     }
   },
 

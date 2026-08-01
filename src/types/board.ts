@@ -32,6 +32,8 @@ export const BOARD_STATUS: { value: BoardStatus; label: string }[] = [
   { value: 'entrega',       label: 'Entrega do lote' },
 ]
 
+export const FLUXO_STATUS: BoardStatus[] = ['analise_1', 'analise_2', 'padronizacao', 'entrega']
+
 export interface BoardLote {
   id: string
   boardPeritoId: string

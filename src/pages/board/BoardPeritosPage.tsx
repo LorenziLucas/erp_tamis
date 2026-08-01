@@ -10,14 +10,13 @@ import { Modal } from '../../components/ui/Modal'
 import { Button } from '../../components/ui/Button'
 import { Input, Select, FormField, Textarea } from '../../components/ui/Input'
 import { KpiCard } from '../../components/ui/Card'
-import { BOARD_STATUS, TIPO_OPTIONS, FORMATO_OPTIONS } from '../../types/board'
+import { BOARD_STATUS, FLUXO_STATUS, TIPO_OPTIONS, FORMATO_OPTIONS } from '../../types/board'
 import type { BoardPerito, BoardStatus, BoardLote, BoardComentario, BoardHistorico } from '../../types/board'
 import { TRT_OPTIONS } from '../../types'
 import { cn } from '../../lib/utils'
 import VisaoPorMes from './VisaoPorMes'
 import { regionBadgeClasses, STATUS_COLORS, dentroDoPeriodo } from './boardUtils'
 
-const FLUXO_STATUS: BoardStatus[]    = ['analise_1', 'analise_2', 'padronizacao', 'entrega']
 const CADASTRO_STATUS: BoardStatus[] = ['ativo', 'nao_ativo']
 
 function initials(nome: string): string {
