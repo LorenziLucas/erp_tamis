@@ -23,7 +23,26 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 
 /** Redireciona analistas (não-administradores) para /board/peritos — único módulo liberado para eles */
 function RequireAdmin({ children }: { children: React.ReactNode }) {
-  const { isAdmin } = useAuth()
+  const { isAdmin, accessCheckFailed } = useAuth()
+
+  if (accessCheckFailed) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#1B4D2E]/5 px-4">
+        <div className="max-w-sm w-full text-center">
+          <p className="text-sm text-gray-600 mb-4">
+            Não foi possível verificar seu nível de acesso. Verifique sua conexão e tente novamente.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 rounded-md bg-[#2D7A47] text-white text-sm font-medium hover:bg-[#1B4D2E] transition-colors"
+          >
+            Recarregar página
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   if (!isAdmin) return <Navigate to="/board/peritos" replace />
   return <>{children}</>
 }

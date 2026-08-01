@@ -16,9 +16,16 @@ interface AuthContextValue {
   session:         Session | null
   isAuthenticated: boolean
   isAdmin:         boolean
+  accessCheckFailed: boolean
   loading:         boolean
   login:           (email: string, password: string) => Promise<{ error: string | null }>
   logout:          () => Promise<void>
+}
+
+const ACCESS_CHECK_RETRY_DELAYS_MS = [400, 800]
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 // ── Context ────────────────────────────────────────────────────────────────────
@@ -31,6 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user,    setUser]    = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [accessCheckFailed, setAccessCheckFailed] = useState(false)
   const [loading, setLoading] = useState(true)
 
   // Sincroniza sessão (e o nível de acesso do analista vinculado) ao montar e a cada mudança de auth.
@@ -42,14 +50,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(session?.user ?? null)
 
       if (session?.user) {
-        const { data } = await supabase
-          .from('analistas')
-          .select('tipo_acesso')
-          .eq('auth_user_id', session.user.id)
-          .maybeSingle()
-        setIsAdmin(data?.tipo_acesso === 'admin')
+        let attempt = 0
+        while (true) {
+          const { data, error } = await supabase
+            .from('analistas')
+            .select('tipo_acesso')
+            .eq('auth_user_id', session.user.id)
+            .maybeSingle()
+
+          if (!error) {
+            setIsAdmin(data?.tipo_acesso === 'admin')
+            setAccessCheckFailed(false)
+            break
+          }
+
+          if (attempt >= ACCESS_CHECK_RETRY_DELAYS_MS.length) {
+            // Falha de infraestrutura não deve virar "sem privilégio" — sinaliza o erro em vez de rebaixar o usuário.
+            setAccessCheckFailed(true)
+            break
+          }
+
+          await sleep(ACCESS_CHECK_RETRY_DELAYS_MS[attempt])
+          attempt++
+        }
       } else {
         setIsAdmin(false)
+        setAccessCheckFailed(false)
       }
 
       setLoading(false)
@@ -83,6 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
     setSession(null)
     setIsAdmin(false)
+    setAccessCheckFailed(false)
   }, [])
 
   return (
@@ -92,6 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         session,
         isAuthenticated: !!user,
         isAdmin,
+        accessCheckFailed,
         loading,
         login,
         logout,
