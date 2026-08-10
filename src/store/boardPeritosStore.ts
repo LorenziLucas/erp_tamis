@@ -9,7 +9,7 @@ import {
   vincularAnalista,
   desvincularAnalista,
 } from '../services/boardPeritosService'
-import { notificarEmail } from '../services/notificacoesService'
+import { notificarEmail, montarDestinatarios } from '../services/notificacoesService'
 import { registrarHistorico, listarHistorico } from '../services/boardHistoricoService'
 import { useAnalistasStore } from './analistasStore'
 import { useAuthStore } from './authStore'
@@ -102,16 +102,7 @@ export const useBoardPeritosStore = create<BoardPeritosState>((set) => ({
           const emailsVinculados = vinculados.map((v) => analistas.find((a) => a.id === v.id)?.email)
           const emailsAdmins     = analistas.filter((a) => a.tipoAcesso === 'admin').map((a) => a.email)
 
-          const vistos = new Set<string>()
-          const destinatarios: string[] = []
-          for (const email of [...emailsVinculados, ...emailsAdmins]) {
-            if (!email) continue
-            const chave = email.toLowerCase()
-            if (vistos.has(chave)) continue
-            if (autorEmail && chave === autorEmail.toLowerCase()) continue
-            vistos.add(chave)
-            destinatarios.push(email)
-          }
+          const destinatarios = montarDestinatarios([...emailsVinculados, ...emailsAdmins], autorEmail)
 
           if (destinatarios.length > 0) {
             const nomePerito   = itemAnterior.nome

@@ -7,7 +7,10 @@ import {
   deletarBoardLote,
 } from '../services/boardLotesService'
 import { registrarHistorico } from '../services/boardHistoricoService'
+import { notificarEmail, montarDestinatarios } from '../services/notificacoesService'
 import { useAuthStore } from './authStore'
+import { useAnalistasStore } from './analistasStore'
+import { useBoardPeritosStore } from './boardPeritosStore'
 
 function formatMesAno(mesRef: string | null): string {
   if (!mesRef) return '—'
@@ -90,6 +93,35 @@ export const useBoardLotesStore = create<BoardLotesState>((set) => ({
         `concluiu ${loteAnterior.numero}º lote — ${formatMesAno(loteAnterior.mesRef)}`,
         autorEmail,
       )
+
+      try {
+        if (!useBoardPeritosStore.getState().analistasByPerito[boardPeritoId]) {
+          await useBoardPeritosStore.getState().fetchAnalistasDoPerito(boardPeritoId)
+        }
+        const vinculados = useBoardPeritosStore.getState().analistasByPerito[boardPeritoId] ?? []
+        const analistas  = useAnalistasStore.getState().analistas
+
+        const emailsVinculados = vinculados.map((v) => analistas.find((a) => a.id === v.id)?.email)
+        const emailsAdmins     = analistas.filter((a) => a.tipoAcesso === 'admin').map((a) => a.email)
+
+        const destinatarios = montarDestinatarios([...emailsVinculados, ...emailsAdmins], autorEmail)
+
+        if (destinatarios.length > 0) {
+          const perito     = useBoardPeritosStore.getState().items.find((i) => i.id === boardPeritoId)
+          const peritoNome = perito?.nome ?? 'perito'
+          const regiao     = perito?.regiao ?? ''
+          const mesAno     = formatMesAno(loteAnterior.mesRef)
+          destinatarios.forEach((to) => {
+            notificarEmail({
+              to,
+              subject: `Lote concluído — ${peritoNome}`,
+              html: `<p>O ${loteAnterior.numero}º lote do perito <strong>${peritoNome}</strong> (${regiao}), referente a ${mesAno}, foi marcado como entregue.</p><p>Concluído por ${autorEmail ?? 'usuário desconhecido'}.</p>`,
+            })
+          })
+        }
+      } catch (err) {
+        console.warn('[boardLotesStore] Falha ao notificar conclusão de lote:', err)
+      }
     }
   },
 

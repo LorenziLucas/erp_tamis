@@ -6,7 +6,7 @@ import {
   atualizarComentario,
   deletarComentario,
 } from '../services/boardComentariosService'
-import { notificarEmail } from '../services/notificacoesService'
+import { notificarEmail, montarDestinatarios } from '../services/notificacoesService'
 import { useAnalistasStore } from './analistasStore'
 import { useBoardPeritosStore } from './boardPeritosStore'
 
@@ -65,22 +65,36 @@ export const useBoardComentariosStore = create<BoardComentariosState>((set) => (
       },
     }))
 
-    if (mencionados.length > 0) {
-      const peritoNome = useBoardPeritosStore.getState().items.find((i) => i.id === boardPeritoId)?.nome ?? 'perito'
-      const analistas = useAnalistasStore.getState().analistas
-      const autorLabel = autorEmail ?? 'Alguém'
-      const textoEscapado = escapeHtml(texto)
-      mencionados.forEach((analistaId) => {
-        const analista = analistas.find((a) => a.id === analistaId)
-        if (analista?.email) {
-          notificarEmail({
-            to: analista.email,
-            subject: `Você foi mencionado em um comentário sobre ${peritoNome}`,
-            html: `<p>${escapeHtml(autorLabel)} mencionou você em um comentário sobre <strong>${peritoNome}</strong>:</p><p>${textoEscapado}</p>`,
-          })
-        }
+    const item = useBoardPeritosStore.getState().items.find((i) => i.id === boardPeritoId)
+    const peritoNome = item?.nome ?? 'perito'
+    const peritoNomeEscapado = escapeHtml(peritoNome)
+    const regiaoEscapada = escapeHtml(item?.regiao ?? '')
+    const analistas = useAnalistasStore.getState().analistas
+    const autorLabel = autorEmail ?? 'Alguém'
+    const textoEscapado = escapeHtml(texto)
+
+    const emailsAdmins = analistas.filter((a) => a.tipoAcesso === 'admin').map((a) => a.email)
+    const emailsMencionados = mencionados.map((analistaId) => analistas.find((a) => a.id === analistaId)?.email)
+    const chavesMencionados = new Set(
+      emailsMencionados.filter((email): email is string => !!email).map((email) => email.toLowerCase()),
+    )
+
+    const destinatarios = montarDestinatarios([...emailsAdmins, ...emailsMencionados], autorEmail)
+
+    destinatarios.forEach((to) => {
+      const foiMencionado = chavesMencionados.has(to.toLowerCase())
+      const subject = foiMencionado
+        ? `Você foi mencionado em um comentário sobre ${peritoNome}`
+        : `Novo comentário sobre ${peritoNome}`
+      const introducao = foiMencionado
+        ? `${escapeHtml(autorLabel)} mencionou você em um comentário sobre`
+        : `${escapeHtml(autorLabel)} comentou sobre`
+      notificarEmail({
+        to,
+        subject,
+        html: `<p>${introducao} <strong>${peritoNomeEscapado}</strong> (${regiaoEscapada}):</p><p>${textoEscapado}</p>`,
       })
-    }
+    })
   },
 
   updateComentario: async (boardPeritoId, id, texto, mencionados) => {
