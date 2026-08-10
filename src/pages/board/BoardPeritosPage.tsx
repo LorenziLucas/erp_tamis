@@ -12,7 +12,6 @@ import { Input, Select, FormField, Textarea } from '../../components/ui/Input'
 import { KpiCard } from '../../components/ui/Card'
 import { BOARD_STATUS, FLUXO_STATUS, TIPO_OPTIONS, FORMATO_OPTIONS } from '../../types/board'
 import type { BoardPerito, BoardStatus, BoardLote, BoardComentario, BoardHistorico } from '../../types/board'
-import { TRT_OPTIONS } from '../../types'
 import { cn } from '../../lib/utils'
 import VisaoPorMes from './VisaoPorMes'
 import { regionBadgeClasses, STATUS_COLORS, dentroDoPeriodo } from './boardUtils'
@@ -917,9 +916,7 @@ function DetailModal({
   const { success, error: toastError } = useToast()
   const { entregue, total } = useChecklistProgress(perito.id)
 
-  const [regiao, setRegiao] = useState(perito.regiao)
   const [statusChanging, setStatusChanging] = useState(false)
-  const [saving, setSaving] = useState(false)
 
   async function handleStatusChange(newStatus: BoardStatus) {
     if (newStatus === perito.status) return
@@ -931,22 +928,6 @@ function DetailModal({
       toastError(err instanceof Error ? err.message : 'Erro ao atualizar status')
     } finally {
       setStatusChanging(false)
-    }
-  }
-
-  async function handleSaveRegiao() {
-    if (!regiao) {
-      toastError('Selecione uma região')
-      return
-    }
-    setSaving(true)
-    try {
-      await updateItem(perito.id, { regiao })
-      success('Região atualizada')
-    } catch (err) {
-      toastError(err instanceof Error ? err.message : 'Erro ao salvar região')
-    } finally {
-      setSaving(false)
     }
   }
 
@@ -975,17 +956,6 @@ function DetailModal({
         <AnalistasVinculados boardPeritoId={perito.id} />
 
         <div className="border-t border-[#D4DAD6] pt-5">
-          <FormField label="Região">
-            <Select value={regiao} onChange={(e) => setRegiao(e.target.value)}>
-              <option value="">Selecione a região…</option>
-              {TRT_OPTIONS.map((t) => (
-                <option key={t.value} value={t.label}>{t.label}</option>
-              ))}
-            </Select>
-          </FormField>
-        </div>
-
-        <div className="border-t border-[#D4DAD6] pt-5">
           <ChecklistLotes boardPeritoId={perito.id} />
         </div>
 
@@ -1009,9 +979,6 @@ function DetailModal({
 
         <div className="border-t border-[#D4DAD6] pt-5 flex justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>Fechar</Button>
-          <Button variant="primary" onClick={handleSaveRegiao} disabled={saving}>
-            {saving ? 'Salvando…' : 'Salvar'}
-          </Button>
         </div>
       </div>
     </Modal>

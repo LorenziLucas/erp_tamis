@@ -3,6 +3,12 @@ export interface TRT {
   numero: number
   descricao: string
   cidadeSede: string
+  uf: string | null
+}
+
+/** Espelho de `trt_regiao_label` no banco: "TRT13 (PB)", ou "TRT13" sem UF. */
+export function regiaoLabel(numero: number, uf: string | null | undefined): string {
+  return uf ? `TRT${numero} (${uf})` : `TRT${numero}`
 }
 
 export interface PeritoCadastro {
@@ -35,13 +41,8 @@ export interface Lote {
   totalSentencas: number
 }
 
-export const TRT_OPTIONS = [
-  { value: 'TRT_1', label: 'TRT1 (RJ)' },
-  { value: 'TRT_4', label: 'TRT4 (RS)' },
-  { value: 'TRT_6', label: 'TRT6 (PE)' },
-  { value: 'TRT_12', label: 'TRT12 (SC)' },
-] as const
-
+// Mantido apenas para compatibilidade com a importação de planilhas legadas
+// (ver src/lib/excelUtils.ts). Nenhum outro arquivo deve depender deste mapa.
 export const REGIAO_MAP: Record<string, string> = {
   TRT_1: 'TRT1 (RJ)',
   TRT_4: 'TRT4 (RS)',

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { usePeritosStore } from '../store/peritosStore'
 import { getPeritosByTRT } from '../services/peritosService'
-import { TRT_OPTIONS } from '../types'
+import { regiaoLabel } from '../types'
 import { cn } from '../lib/utils'
 import { Select, FormField } from './ui/Input'
 
@@ -36,21 +36,6 @@ export function SeletorTRTPerito({ trtId, peritoId, onChangeTRT, onChangePerito,
     })
   }, [trtId])
 
-  function getLegacy(numero: number): { value: string; label: string } {
-    const value = `TRT_${numero}`
-    const opt   = TRT_OPTIONS.find((o) => o.value === value)
-    return { value, label: opt?.label ?? value }
-  }
-
-  function cardLabel(numero: number, cidadeSede: string): string {
-    const estado = cidadeSede.includes('Janeiro') ? 'RJ'
-      : cidadeSede.includes('Alegre')  ? 'RS'
-      : cidadeSede.includes('Recife')  ? 'PE'
-      : cidadeSede.includes('polis')   ? 'SC'
-      : cidadeSede.slice(0, 2).toUpperCase()
-    return `TRT${numero} · ${estado}`
-  }
-
   return (
     <div className="space-y-4">
       {/* ── TRT cards ─────────────────────────────────────────────────────── */}
@@ -60,13 +45,14 @@ export function SeletorTRTPerito({ trtId, peritoId, onChangeTRT, onChangePerito,
         </label>
         <div className="grid grid-cols-4 gap-2">
           {trts.map((trt) => {
-            const legacy     = getLegacy(trt.numero)
-            const isSelected = trtId === trt.id
+            const legacyValue = `TRT_${trt.numero}`
+            const label       = regiaoLabel(trt.numero, trt.uf)
+            const isSelected  = trtId === trt.id
             return (
               <button
                 key={trt.id}
                 type="button"
-                onClick={() => onChangeTRT(trt.id, legacy.value, legacy.label)}
+                onClick={() => onChangeTRT(trt.id, legacyValue, label)}
                 className={cn(
                   'rounded-md border py-2 px-1 text-sm font-medium transition-colors text-center',
                   isSelected
@@ -74,7 +60,7 @@ export function SeletorTRTPerito({ trtId, peritoId, onChangeTRT, onChangePerito,
                     : 'bg-white text-[#5A6A5E] border-[#D4DAD6] hover:border-[#1B4D2E] hover:text-[#1B4D2E]',
                 )}
               >
-                {cardLabel(trt.numero, trt.cidadeSede)}
+                {label}
               </button>
             )
           })}

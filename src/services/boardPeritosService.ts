@@ -4,6 +4,7 @@ import type { BoardPerito, BoardStatus } from '../types/board'
 interface BoardPeritoDB {
   id: string
   perito_id: string
+  trt_id: string
   nome: string
   regiao: string
   status: BoardStatus
@@ -23,6 +24,7 @@ function dbToBoardPerito(row: BoardPeritoDB): BoardPerito {
   return {
     id:              row.id,
     peritoId:        row.perito_id,
+    trtId:           row.trt_id,
     nome:            row.nome,
     regiao:          row.regiao,
     status:          row.status,
@@ -52,7 +54,6 @@ export async function atualizarBoardPerito(
     status:          BoardStatus
     provisionado:    number
     entregue:        number
-    regiao:          string
     analista:        string | null
     ordem:           number
     planilhaUrl:     string | null

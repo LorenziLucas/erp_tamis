@@ -1,11 +1,11 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useForm, Controller, type SubmitHandler } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Input, Select, FormField } from '../../components/ui/Input'
 import { Button } from '../../components/ui/Button'
 import { SeletorTRTPerito } from '../../components/SeletorTRTPerito'
-import { REGIAO_MAP, ANALISTA_OPTIONS, TIPO_OPTIONS, FORMATO_OPTIONS, ANALISE_OPTIONS } from '../../types'
+import { ANALISTA_OPTIONS, TIPO_OPTIONS, FORMATO_OPTIONS, ANALISE_OPTIONS } from '../../types'
 import { calcDias } from '../../lib/utils'
 import type { Lote } from '../../types'
 
@@ -111,6 +111,10 @@ export function LoteForm({ defaultValues, onSubmit, onCancel, submitLabel = 'Sal
 
   const qtdDias = calcDias(envio, entrega)
 
+  // A região vem do 3º argumento de onChangeTRT (gerado por regiaoLabel), não
+  // é um campo do schema — guardada em ref para não disparar re-render.
+  const regiaoRef = useRef(defaultValues?.regiao ?? '')
+
   useEffect(() => {
     const base = entrega || envio
     setValue('mesRef', base ? base.substring(0, 7) + '-01' : '')
@@ -132,7 +136,7 @@ export function LoteForm({ defaultValues, onSubmit, onCancel, submitLabel = 'Sal
   }
 
   const handleValid: SubmitHandler<LoteFormData> = (data) => {
-    const regiao  = REGIAO_MAP[data.trt] ?? data.trt
+    const regiao  = regiaoRef.current
     const base    = data.entrega || data.envio
     const mesRef  = base ? base.substring(0, 7) + '-01' : ''
     onSubmit({ ...data, mesRef, regiao, qtdDias })
@@ -150,7 +154,7 @@ export function LoteForm({ defaultValues, onSubmit, onCancel, submitLabel = 'Sal
           setValue('trt',      trt,    { shouldValidate: true, shouldDirty: true })
           setValue('peritoId', '',     { shouldDirty: true })
           setValue('perito',   '',     { shouldDirty: true })
-          void regiao
+          regiaoRef.current = regiao
         }}
         onChangePerito={(peritoId, perito) => {
           setValue('peritoId', peritoId, { shouldValidate: true, shouldDirty: true })

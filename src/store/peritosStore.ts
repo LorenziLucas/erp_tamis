@@ -19,8 +19,8 @@ interface PeritosState {
   fetchPeritos: () => Promise<void>
   createPerito: (nome: string, trtIds: string[]) => Promise<void>
   updatePerito: (id: string, nome: string, trtIds: string[]) => Promise<void>
-  createTRT:    (numero: number, cidadeSede: string) => Promise<void>
-  updateTRT:    (id: string, numero: number, cidadeSede: string) => Promise<void>
+  createTRT:    (numero: number, cidadeSede: string, uf: string) => Promise<void>
+  updateTRT:    (id: string, numero: number, cidadeSede: string, uf: string) => Promise<void>
 }
 
 export const usePeritosStore = create<PeritosState>((set, get) => ({
@@ -65,9 +65,9 @@ export const usePeritosStore = create<PeritosState>((set, get) => ({
     await get().fetchPeritos()
   },
 
-  createTRT: async (numero, cidadeSede) => {
+  createTRT: async (numero, cidadeSede, uf) => {
     set({ loading: true, error: null })
-    const { data, error } = await svcCreateTRT(numero, cidadeSede)
+    const { data, error } = await svcCreateTRT(numero, cidadeSede, uf)
     if (error || !data) {
       const message = String(error ?? 'Erro ao criar TRT')
       set({ loading: false, error: message })
@@ -76,9 +76,9 @@ export const usePeritosStore = create<PeritosState>((set, get) => ({
     set((state) => ({ trts: [...state.trts, data].sort((a, b) => a.numero - b.numero), loading: false }))
   },
 
-  updateTRT: async (id, numero, cidadeSede) => {
+  updateTRT: async (id, numero, cidadeSede, uf) => {
     set({ loading: true, error: null })
-    const { error } = await svcUpdateTRT(id, numero, cidadeSede)
+    const { error } = await svcUpdateTRT(id, numero, cidadeSede, uf)
     if (error) {
       const message = String(error)
       set({ loading: false, error: message })

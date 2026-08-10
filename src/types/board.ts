@@ -11,6 +11,7 @@ export type BoardStatus =
 export interface BoardPerito {
   id: string
   peritoId: string
+  trtId: string
   nome: string
   regiao: string
   status: BoardStatus

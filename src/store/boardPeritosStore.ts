@@ -33,7 +33,6 @@ interface BoardPeritosState {
       status:       BoardStatus
       provisionado: number
       entregue:     number
-      regiao:       string
       analista:     string | null
       ordem:        number
       planilhaUrl:  string | null

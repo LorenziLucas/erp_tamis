@@ -23,6 +23,7 @@ interface TRTDB {
   numero: number
   descricao: string
   cidade_sede: string
+  uf: string | null
 }
 
 interface PeritoTRTDB {
@@ -41,7 +42,7 @@ interface PeritoCurtoRow {
 }
 
 function dbToTRT(row: TRTDB): TRT {
-  return { id: row.id, numero: row.numero, descricao: row.descricao, cidadeSede: row.cidade_sede }
+  return { id: row.id, numero: row.numero, descricao: row.descricao, cidadeSede: row.cidade_sede, uf: row.uf }
 }
 
 function dbToPeritoCadastro(row: PeritoCadastroDB): PeritoCadastro {
@@ -79,7 +80,7 @@ export async function upsertPerito(nome: string, cpf: string) {
 export async function getTRTs(): Promise<{ data: TRT[]; error: unknown }> {
   const { data, error } = await supabase
     .from('trts')
-    .select('id,numero,descricao,cidade_sede')
+    .select('id,numero,descricao,cidade_sede,uf')
     .order('numero')
 
   return { data: (data as TRTDB[] | null)?.map(dbToTRT) ?? [], error }
@@ -88,7 +89,7 @@ export async function getTRTs(): Promise<{ data: TRT[]; error: unknown }> {
 export async function getPeritos(): Promise<{ data: PeritoCadastro[]; error: unknown }> {
   const { data, error } = await supabase
     .from('peritos')
-    .select('id,nome,perito_trt(trt_id,trts(id,numero,descricao,cidade_sede))')
+    .select('id,nome,perito_trt(trt_id,trts(id,numero,descricao,cidade_sede,uf))')
     .order('nome')
 
   return { data: (data as PeritoCadastroDB[] | null)?.map(dbToPeritoCadastro) ?? [], error }
@@ -154,22 +155,22 @@ export async function updatePerito(id: string, nome: string, trtIds: string[]): 
 
 // ── CRUD de TRTs ──────────────────────────────────────────────────────────────
 
-export async function createTRT(numero: number, cidadeSede: string): Promise<{ data: TRT | null; error: unknown }> {
+export async function createTRT(numero: number, cidadeSede: string, uf: string): Promise<{ data: TRT | null; error: unknown }> {
   const descricao = `${numero}ª Região`
   const { data, error } = await supabase
     .from('trts')
-    .insert({ numero, descricao, cidade_sede: cidadeSede })
-    .select('id,numero,descricao,cidade_sede')
+    .insert({ numero, descricao, cidade_sede: cidadeSede, uf })
+    .select('id,numero,descricao,cidade_sede,uf')
     .single()
 
   return { data: data ? dbToTRT(data as TRTDB) : null, error }
 }
 
-export async function updateTRT(id: string, numero: number, cidadeSede: string): Promise<{ error: unknown }> {
+export async function updateTRT(id: string, numero: number, cidadeSede: string, uf: string): Promise<{ error: unknown }> {
   const descricao = `${numero}ª Região`
   const { error } = await supabase
     .from('trts')
-    .update({ numero, descricao, cidade_sede: cidadeSede })
+    .update({ numero, descricao, cidade_sede: cidadeSede, uf })
     .eq('id', id)
 
   return { error }

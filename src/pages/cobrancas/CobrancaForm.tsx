@@ -6,7 +6,7 @@ import { ExternalLink } from 'lucide-react'
 import { Input, Select, FormField } from '../../components/ui/Input'
 import { Button } from '../../components/ui/Button'
 import { SeletorTRTPerito } from '../../components/SeletorTRTPerito'
-import { REGIAO_MAP, TRT_OPTIONS } from '../../types'
+import { regiaoLabel } from '../../types'
 import { NOTA_FISCAL_OPTIONS } from '../../types/cobrancas'
 import { usePeritosStore } from '../../store/peritosStore'
 import { getPeritosByTRT } from '../../services/peritosService'
@@ -138,10 +138,7 @@ export function CobrancaForm({ defaultValues, peritos, onSubmit, onCancel, loadi
     if (!defaultValues?.regiao || !defaultValues?.perito) return
     if (!trts.length) { fetchTRTs(); return }
 
-    const matchTRT = trts.find((t) => {
-      const opt = TRT_OPTIONS.find((o) => o.value === `TRT_${t.numero}`)
-      return opt?.label === defaultValues.regiao
-    })
+    const matchTRT = trts.find((t) => regiaoLabel(t.numero, t.uf) === defaultValues.regiao)
     if (!matchTRT) return
 
     setValue('trtId', matchTRT.id)
@@ -184,11 +181,11 @@ export function CobrancaForm({ defaultValues, peritos, onSubmit, onCancel, loadi
       <SeletorTRTPerito
         trtId={watch('trtId') ?? ''}
         peritoId={watch('peritoId') ?? ''}
-        onChangeTRT={(trtId, trt) => {
-          setValue('trtId',    trtId,                 { shouldValidate: true, shouldDirty: true })
-          setValue('regiao',   REGIAO_MAP[trt] ?? '', { shouldValidate: true, shouldDirty: true })
-          setValue('peritoId', '',                    { shouldDirty: true })
-          setValue('perito',   '',                    { shouldDirty: true })
+        onChangeTRT={(trtId, _trt, regiao) => {
+          setValue('trtId',    trtId,   { shouldValidate: true, shouldDirty: true })
+          setValue('regiao',   regiao,  { shouldValidate: true, shouldDirty: true })
+          setValue('peritoId', '',      { shouldDirty: true })
+          setValue('perito',   '',      { shouldDirty: true })
         }}
         onChangePerito={(peritoId, perito) => {
           setValue('peritoId', peritoId, { shouldValidate: true, shouldDirty: true })

@@ -5,19 +5,21 @@ import { Button } from '../../components/ui/Button'
 import { Input, FormField } from '../../components/ui/Input'
 import { useToast } from '../../components/ui/Toast'
 import type { TRT } from '../../types'
+import { regiaoLabel } from '../../types'
 
 // ── Formulário de cadastro/edição ─────────────────────────────────────────────
 
 interface TRTFormState {
   numero: string
   cidadeSede: string
+  uf: string
 }
 
 interface TRTsFormProps {
   loading:  boolean
   initial?: TRT
   numerosExistentes: number[]
-  onSave:   (numero: number, cidadeSede: string) => Promise<void>
+  onSave:   (numero: number, cidadeSede: string, uf: string) => Promise<void>
   onCancel: () => void
 }
 
@@ -25,6 +27,7 @@ function TRTsForm({ loading, initial, numerosExistentes, onSave, onCancel }: TRT
   const [form, setForm] = useState<TRTFormState>({
     numero:     initial ? String(initial.numero) : '',
     cidadeSede: initial?.cidadeSede ?? '',
+    uf:         initial?.uf ?? '',
   })
   const [erros, setErros] = useState<Partial<TRTFormState>>({})
 
@@ -39,13 +42,14 @@ function TRTsForm({ loading, initial, numerosExistentes, onSave, onCancel }: TRT
       e.numero = `TRT${n} já cadastrado`
     }
     if (!form.cidadeSede.trim()) e.cidadeSede = 'Cidade sede obrigatória'
+    if (form.uf.trim().length !== 2) e.uf = 'UF deve ter exatamente 2 caracteres'
     setErros(e)
     return !Object.keys(e).length
   }
 
   async function handleSave() {
     if (!validate()) return
-    await onSave(Number(form.numero), form.cidadeSede.trim())
+    await onSave(Number(form.numero), form.cidadeSede.trim(), form.uf.trim().toUpperCase())
   }
 
   return (
@@ -66,17 +70,31 @@ function TRTsForm({ loading, initial, numerosExistentes, onSave, onCancel }: TRT
         {form.numero && !isNaN(Number(form.numero)) && Number(form.numero) >= 1 && (
           <p className="mt-1 text-[11px] text-[#5A6A5E]">
             Descrição gerada: <span className="font-medium">{Number(form.numero)}ª Região</span>
+            {' · '}
+            Rótulo no board: <span className="font-medium">{regiaoLabel(Number(form.numero), form.uf.trim().toUpperCase() || null)}</span>
           </p>
         )}
       </FormField>
 
-      <FormField label="Cidade Sede" required error={erros.cidadeSede}>
-        <Input
-          value={form.cidadeSede}
-          onChange={(e) => { setForm((f) => ({ ...f, cidadeSede: e.target.value })); setErros((e) => ({ ...e, cidadeSede: undefined })) }}
-          placeholder="Ex: Porto Alegre"
-        />
-      </FormField>
+      <div className="grid grid-cols-3 gap-3">
+        <div className="col-span-2">
+          <FormField label="Cidade Sede" required error={erros.cidadeSede}>
+            <Input
+              value={form.cidadeSede}
+              onChange={(e) => { setForm((f) => ({ ...f, cidadeSede: e.target.value })); setErros((e) => ({ ...e, cidadeSede: undefined })) }}
+              placeholder="Ex: Porto Alegre"
+            />
+          </FormField>
+        </div>
+        <FormField label="UF" required error={erros.uf}>
+          <Input
+            value={form.uf}
+            onChange={(e) => { setForm((f) => ({ ...f, uf: e.target.value.toUpperCase().slice(0, 2) })); setErros((e) => ({ ...e, uf: undefined })) }}
+            placeholder="Ex: RS"
+            maxLength={2}
+          />
+        </FormField>
+      </div>
 
       <div className="flex justify-end gap-2 pt-2 border-t border-[#D4DAD6]">
         <Button type="button" variant="secondary" onClick={onCancel}>Cancelar</Button>
@@ -107,13 +125,13 @@ export default function TRTsPage() {
 
   const numerosExistentes = trts.map((t) => t.numero)
 
-  async function handleSave(numero: number, cidadeSede: string) {
+  async function handleSave(numero: number, cidadeSede: string, uf: string) {
     try {
       if (editando === 'novo') {
-        await createTRT(numero, cidadeSede)
+        await createTRT(numero, cidadeSede, uf)
         success('TRT cadastrado com sucesso!')
       } else if (editando) {
-        await updateTRT(editando.id, numero, cidadeSede)
+        await updateTRT(editando.id, numero, cidadeSede, uf)
         success('TRT atualizado com sucesso!')
       }
       setEditando(null)
