@@ -169,10 +169,10 @@ export function LoteForm({ defaultValues, onSubmit, onCancel, submitLabel = 'Sal
 
       {/* Row 2: Lote + Analista */}
       <div className="grid grid-cols-2 gap-4">
-        <FormField label="Número do Lote" required error={errors.lote?.message}>
+        <FormField label="Número do Lote" required>
           <Input {...register('lote', { valueAsNumber: true })} type="number" min={1} error={errors.lote?.message} />
         </FormField>
-        <FormField label="Analista" required error={errors.analista?.message}>
+        <FormField label="Analista" required>
           <Controller
             name="analista"
             control={control}
@@ -213,7 +213,7 @@ export function LoteForm({ defaultValues, onSubmit, onCancel, submitLabel = 'Sal
 
       {/* Row 4: Datas */}
       <div className="grid grid-cols-2 gap-4">
-        <FormField label="Data de Envio" required error={errors.envio?.message}>
+        <FormField label="Data de Envio" required>
           <Input {...register('envio')} type="date" error={errors.envio?.message} />
         </FormField>
         <FormField label="Data de Entrega">
@@ -245,10 +245,10 @@ export function LoteForm({ defaultValues, onSubmit, onCancel, submitLabel = 'Sal
 
       {/* Row 5: Quantidades */}
       <div className="grid grid-cols-4 gap-4">
-        <FormField label="Qtd Analisada (PA)" required error={errors.qtdAnalisada?.message}>
+        <FormField label="Qtd Analisada (PA)" required>
           <Input {...register('qtdAnalisada', { valueAsNumber: true })} type="number" min={0} error={errors.qtdAnalisada?.message} />
         </FormField>
-        <FormField label="Qtd Total (PT)" required error={errors.qtdTotal?.message}>
+        <FormField label="Qtd Total (PT)" required>
           <Input {...register('qtdTotal', { valueAsNumber: true })} type="number" min={1} error={errors.qtdTotal?.message} />
         </FormField>
         <FormField label='Qtd "P"' error={errors.qtdP?.message}>

@@ -209,7 +209,7 @@ export function CobrancaForm({ defaultValues, peritos, onSubmit, onCancel, loadi
 
       {/* Mês de Referência + Data do Envio */}
       <div className="grid grid-cols-2 gap-4">
-        <FormField label="Mês de Referência" required error={errors.mesRef?.message}>
+        <FormField label="Mês de Referência" required>
           <Input {...register('mesRef')} type="month" error={errors.mesRef?.message} />
         </FormField>
 
