@@ -895,7 +895,7 @@ export default function Dashboard() {
         <ChartCard title="Distribuição por Formato" className="min-h-[220px]">
           <Doughnut data={formatoData} options={donutOpts} />
         </ChartCard>
-        <ChartCard title="Distribuição por Região" subtitle="Processos analisados por TRT" className="min-h-[220px]">
+        <ChartCard title="Distribuição por Região" className="min-h-[220px]">
           <Bar
             data={regiaoData}
             options={regiaoOptions as Parameters<typeof Bar>[0]['options']}
