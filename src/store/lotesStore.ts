@@ -29,6 +29,18 @@ interface LotesState {
   migrateMesRef:  () => void
 }
 
+/** Traduz violações dos CHECK constraints "lotes_qtd*" da tabela lotes para
+ *  mensagens em português. Retorna a mensagem original se não reconhecer o erro. */
+function friendlyQtdErrorMessage(rawMessage: string): string {
+  if (rawMessage.includes('lotes_qtd_analisada_lte_total')) {
+    return 'Qtd Analisada (PA) não pode ser maior que a Qtd Total (PT).'
+  }
+  if (rawMessage.includes('lotes_qtd_analisada_min1') || rawMessage.includes('lotes_qtd_total_min1')) {
+    return 'Qtd Analisada (PA) e Qtd Total (PT) precisam ser informadas e maiores que zero.'
+  }
+  return rawMessage
+}
+
 export const useLotesStore = create<LotesState>((set, get) => ({
   lotes:   [],
   loading: false,
@@ -51,7 +63,7 @@ export const useLotesStore = create<LotesState>((set, get) => ({
   addLote: async (lote) => {
     const { data, error } = await criarLote(lote)
     if (error || !data) {
-      const msg = String((error as Error)?.message ?? 'Erro ao criar lote')
+      const msg = friendlyQtdErrorMessage(String((error as Error)?.message ?? 'Erro ao criar lote'))
       set({ error: msg })
       throw new Error(msg)
     }
@@ -74,7 +86,7 @@ export const useLotesStore = create<LotesState>((set, get) => ({
   updateLote: async (id, partial) => {
     const { data, error } = await atualizarLote(id, partial)
     if (error || !data) {
-      set({ error: String((error as Error)?.message ?? 'Erro ao atualizar lote') })
+      set({ error: friendlyQtdErrorMessage(String((error as Error)?.message ?? 'Erro ao atualizar lote')) })
       return
     }
     set((state) => ({

@@ -55,9 +55,12 @@ const schema = z.object({
   mesRef:        z.string(),
   valorDevido:   z.number().min(0),
   pago:          z.boolean(),
-  qtdTotal:      z.number().min(0),
+  qtdTotal:      z.number().min(1, 'Qtd deve ser >= 1'),
   qtdP:          z.number().min(0),
   totalSentencas: z.number().min(0),
+}).refine((data) => data.qtdAnalisada <= data.qtdTotal, {
+  message: 'Qtd Analisada não pode ser maior que a Qtd Total',
+  path: ['qtdAnalisada'],
 })
 
 export type LoteFormData = z.infer<typeof schema>
@@ -242,11 +245,11 @@ export function LoteForm({ defaultValues, onSubmit, onCancel, submitLabel = 'Sal
 
       {/* Row 5: Quantidades */}
       <div className="grid grid-cols-4 gap-4">
-        <FormField label="Qtd Analisada" required error={errors.qtdAnalisada?.message}>
+        <FormField label="Qtd Analisada (PA)" required error={errors.qtdAnalisada?.message}>
           <Input {...register('qtdAnalisada', { valueAsNumber: true })} type="number" min={0} error={errors.qtdAnalisada?.message} />
         </FormField>
-        <FormField label="Qtd Total" error={errors.qtdTotal?.message}>
-          <Input {...register('qtdTotal', { valueAsNumber: true })} type="number" min={0} />
+        <FormField label="Qtd Total (PT)" required error={errors.qtdTotal?.message}>
+          <Input {...register('qtdTotal', { valueAsNumber: true })} type="number" min={1} error={errors.qtdTotal?.message} />
         </FormField>
         <FormField label='Qtd "P"' error={errors.qtdP?.message}>
           <Input {...register('qtdP', { valueAsNumber: true })} type="number" min={0} />

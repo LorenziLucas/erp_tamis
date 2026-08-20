@@ -245,6 +245,21 @@ export function importXlsx(file: File, existingLotes: Lote[] = []): Promise<Impo
             const qtdP            = toNum(get('qtdP'))
             const totalSentencas  = toNum(get('totalSentencas'))
 
+            if (qtdAnalisada <= 0 || qtdTotal <= 0) {
+              errors.push(
+                `Linha ${i + 2}: Qtd Analisada (PA) e Qtd Total (PT) são obrigatórias e devem ser maiores que zero ` +
+                `(PA=${qtdAnalisada}, PT=${qtdTotal})`,
+              )
+              return
+            }
+            if (qtdAnalisada > qtdTotal) {
+              errors.push(
+                `Linha ${i + 2}: Qtd Analisada (PA) não pode ser maior que Qtd Total (PT) ` +
+                `(PA=${qtdAnalisada}, PT=${qtdTotal})`,
+              )
+              return
+            }
+
             // Monta objeto candidato para gerar a chave com TODOS os campos
             const candidate = {
               perito, lote: loteNum, trt, analista,
