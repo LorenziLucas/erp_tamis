@@ -4,6 +4,7 @@ import {
   CategoryScale, LinearScale, BarElement, LineElement, PointElement,
   ArcElement, Tooltip, Legend, Filler,
 } from 'chart.js'
+import type { Plugin } from 'chart.js'
 import { Bar, Doughnut, Line, Chart } from 'react-chartjs-2'
 import { Link } from 'react-router-dom'
 import {
@@ -34,6 +35,33 @@ const C = {
 const fmtTickK = (v: number | string) => {
   const k = Number(v) / 1000
   return k.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + 'k'
+}
+
+/** "TRT4 (RS)" → "TRT4" — sigla do tribunal, sem a UF entre parênteses */
+const regiaoSigla = (regiao: string) => regiao.replace(/\s*\([^)]*\)\s*$/, '')
+
+/** Plugin local (não registrado globalmente) que desenha o valor de cada barra
+ *  horizontal logo à direita da sua extremidade — usado apenas no gráfico de
+ *  Distribuição por Região, via prop `plugins` do componente Bar. */
+const regiaoValueLabelsPlugin: Plugin<'bar'> = {
+  id: 'regiaoValueLabels',
+  afterDatasetsDraw(chart) {
+    const { ctx } = chart
+    const meta = chart.getDatasetMeta(0)
+    const dataset = chart.data.datasets[0]
+    if (!dataset) return
+    ctx.save()
+    ctx.font = `10px ${DARK.font}`
+    ctx.fillStyle = DARK.text
+    ctx.textBaseline = 'middle'
+    ctx.textAlign = 'left'
+    meta.data.forEach((bar, i) => {
+      const value = Number(dataset.data[i] ?? 0)
+      const { x, y } = bar.getProps(['x', 'y'], true)
+      ctx.fillText(value.toLocaleString('pt-BR'), x + 6, y)
+    })
+    ctx.restore()
+  },
 }
 
 const CHART_BASE = {
@@ -682,9 +710,36 @@ export default function Dashboard() {
     labels: Object.keys(byTipo),
     datasets: [{ data: Object.values(byTipo), backgroundColor: [C.purple, C.orange, C.teal, C.red].map((c) => `${c}cc`), borderColor: [C.purple, C.orange, C.teal, C.red], borderWidth: 1.5, hoverOffset: 6 }],
   }
+  const regiaoEntries = Object.entries(byRegiao).sort(([, a], [, b]) => b - a)
   const regiaoData = {
-    labels: Object.keys(byRegiao),
-    datasets: [{ data: Object.values(byRegiao), backgroundColor: [C.purple, C.teal, C.orange, C.red].map((c) => `${c}cc`), borderColor: [C.purple, C.teal, C.orange, C.red], borderWidth: 1.5, hoverOffset: 6 }],
+    labels: regiaoEntries.map(([label]) => regiaoSigla(label)),
+    datasets: [{
+      label: 'Processos',
+      data: regiaoEntries.map(([, v]) => v),
+      backgroundColor: `${C.blue}88`,
+      borderColor: C.blue,
+      borderWidth: 1,
+      borderRadius: 4,
+    }],
+  }
+  const regiaoOptions = {
+    ...CHART_BASE,
+    indexAxis: 'y' as const,
+    layout: { padding: { right: 40 } },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          title: (items: { dataIndex: number }[]) =>
+            items.length > 0 ? [regiaoEntries[items[0].dataIndex][0]] : [],
+          label: (ctx: { parsed: { x: number } }) => ` ${ctx.parsed.x.toLocaleString('pt-BR')} processos`,
+        },
+      },
+    },
+    scales: {
+      x: { display: false },
+      y: { grid: { display: false }, ticks: { color: DARK.text, font: { family: DARK.font, size: 11 } } },
+    },
   }
   const FORMATO_COLOR: Record<string, string> = { NOVO: C.purple, 'REVISÃO': C.teal, MISTO: C.orange }
   const formatoLabels = Object.keys(byFormato)
@@ -832,16 +887,20 @@ export default function Dashboard() {
         <Line data={trendData as Parameters<typeof Line>[0]['data']} options={trendOptions as Parameters<typeof Line>[0]['options']} />
       </ChartCard>
 
-      {/* Row 2 — 3 Donuts em linha */}
+      {/* Row 2 — Tipo, Formato (rosca) + Região (barras horizontais) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
         <ChartCard title="Distribuição por Tipo" className="min-h-[220px]">
           <Doughnut data={tipoData} options={donutOpts} />
         </ChartCard>
-        <ChartCard title="Distribuição por Região" className="min-h-[220px]">
-          <Doughnut data={regiaoData} options={donutOpts} />
-        </ChartCard>
         <ChartCard title="Distribuição por Formato" className="min-h-[220px]">
           <Doughnut data={formatoData} options={donutOpts} />
+        </ChartCard>
+        <ChartCard title="Distribuição por Região" subtitle="Processos analisados por TRT" className="min-h-[220px]">
+          <Bar
+            data={regiaoData}
+            options={regiaoOptions as Parameters<typeof Bar>[0]['options']}
+            plugins={[regiaoValueLabelsPlugin]}
+          />
         </ChartCard>
       </div>
 
