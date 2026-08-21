@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Search, ChevronDown, ChevronRight as ArrowRight, X, ArrowRightCircle, Plus, Trash2, Pencil, FileSpreadsheet, FileText, Clock, TrendingUp, ArrowRightLeft, CheckCircle2, UserPlus, UserMinus } from 'lucide-react'
+import { Search, ChevronDown, ChevronRight as ArrowRight, X, ArrowRightCircle, Plus, Trash2, Pencil, FileSpreadsheet, FileText, Clock, TrendingUp, ArrowRightLeft, CheckCircle2, UserPlus, UserMinus, Check } from 'lucide-react'
 import { useBoardPeritosStore } from '../../store/boardPeritosStore'
 import { useBoardLotesStore } from '../../store/boardLotesStore'
 import { useAnalistasStore } from '../../store/analistasStore'
@@ -41,6 +41,12 @@ function resolveAutorNome(autorEmail: string | null, analistas: { nome: string; 
   if (!autorEmail) return null
   const email = autorEmail.trim().toLowerCase()
   const match = analistas.find((a) => a.email?.trim().toLowerCase() === email)
+  return match ? match.nome : null
+}
+
+function resolveNomePorId(id: string | null, analistas: { id: string; nome: string }[]): string | null {
+  if (!id) return null
+  const match = analistas.find((a) => a.id === id)
   return match ? match.nome : null
 }
 
@@ -686,7 +692,7 @@ type FeedItem =
 function ComentariosSection({ boardPeritoId }: { boardPeritoId: string }) {
   const { user } = useAuth()
   const comentarios = useBoardComentariosStore((s) => s.comentariosByPerito[boardPeritoId])
-  const { fetchComentarios, addComentario, updateComentario, deleteComentario } = useBoardComentariosStore()
+  const { fetchComentarios, addComentario, updateComentario, deleteComentario, toggleResolvido } = useBoardComentariosStore()
   const historico = useBoardPeritosStore((s) => s.historicoByPerito[boardPeritoId])
   const fetchHistorico = useBoardPeritosStore((s) => s.fetchHistorico)
   const analistasCadastrados = useAnalistasStore((s) => s.analistas)
@@ -701,6 +707,7 @@ function ComentariosSection({ boardPeritoId }: { boardPeritoId: string }) {
   const [savingEdit, setSavingEdit] = useState(false)
 
   const [showAtividades, setShowAtividades] = useState(false)
+  const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     fetchComentarios(boardPeritoId)
@@ -785,6 +792,21 @@ function ComentariosSection({ boardPeritoId }: { boardPeritoId: string }) {
     }
   }
 
+  async function handleToggleResolvido(c: BoardComentario) {
+    setTogglingIds((prev) => new Set(prev).add(c.id))
+    try {
+      await toggleResolvido(boardPeritoId, c.id)
+    } catch (err) {
+      toastError(err instanceof Error ? err.message : 'Erro ao marcar comentário')
+    } finally {
+      setTogglingIds((prev) => {
+        const next = new Set(prev)
+        next.delete(c.id)
+        return next
+      })
+    }
+  }
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-2">
@@ -852,17 +874,44 @@ function ComentariosSection({ boardPeritoId }: { boardPeritoId: string }) {
                     <p className="text-sm text-[#1A1A1A] mt-0.5 whitespace-pre-wrap break-words">
                       {renderTextoComMencoes(c.texto)}
                     </p>
-                    {user?.id === c.autorId && (
-                      <div className="flex items-center gap-2 mt-1">
-                        <button onClick={() => startEdit(c)} className="text-[11px] text-[#5A6A5E] hover:text-[#1B4D2E] transition-colors">
-                          Editar
+                    <div className="flex items-center gap-2 mt-1">
+                      {c.resolvido ? (
+                        <button
+                          onClick={() => handleToggleResolvido(c)}
+                          disabled={togglingIds.has(c.id)}
+                          className="flex items-center gap-1 text-[11px] font-medium text-[#2D7A47] disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                          <Check size={12} />
+                          {(() => {
+                            const nomeResolvido = resolveNomePorId(c.resolvidoPor, analistasCadastrados)
+                            const dataResolvido = c.resolvidoEm ? formatDataHora(c.resolvidoEm) : ''
+                            return nomeResolvido
+                              ? `Marcado por ${nomeResolvido.split(' ')[0]} em ${dataResolvido}`
+                              : `Marcado em ${dataResolvido}`
+                          })()}
                         </button>
-                        <span className="text-[#D4DAD6]">·</span>
-                        <button onClick={() => handleDelete(c)} className="text-[11px] text-[#5A6A5E] hover:text-red-600 transition-colors">
-                          Excluir
+                      ) : (
+                        <button
+                          onClick={() => handleToggleResolvido(c)}
+                          disabled={togglingIds.has(c.id)}
+                          className="flex items-center gap-1 text-[11px] text-[#5A6A5E] hover:text-[#1B4D2E] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                          <Check size={12} /> Marcar
                         </button>
-                      </div>
-                    )}
+                      )}
+                      {user?.id === c.autorId && (
+                        <>
+                          <span className="text-[#D4DAD6]">·</span>
+                          <button onClick={() => startEdit(c)} className="text-[11px] text-[#5A6A5E] hover:text-[#1B4D2E] transition-colors">
+                            Editar
+                          </button>
+                          <span className="text-[#D4DAD6]">·</span>
+                          <button onClick={() => handleDelete(c)} className="text-[11px] text-[#5A6A5E] hover:text-red-600 transition-colors">
+                            Excluir
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </>
                 )}
               </div>

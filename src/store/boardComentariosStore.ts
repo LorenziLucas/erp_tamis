@@ -5,6 +5,7 @@ import {
   criarComentario,
   atualizarComentario,
   deletarComentario,
+  toggleComentarioResolvido,
 } from '../services/boardComentariosService'
 import { notificarEmail, montarDestinatarios } from '../services/notificacoesService'
 import { useAnalistasStore } from './analistasStore'
@@ -34,6 +35,7 @@ interface BoardComentariosState {
   ) => Promise<void>
   updateComentario: (boardPeritoId: string, id: string, texto: string, mencionados: string[]) => Promise<void>
   deleteComentario: (boardPeritoId: string, id: string) => Promise<void>
+  toggleResolvido: (boardPeritoId: string, id: string) => Promise<void>
 }
 
 export const useBoardComentariosStore = create<BoardComentariosState>((set) => ({
@@ -125,6 +127,25 @@ export const useBoardComentariosStore = create<BoardComentariosState>((set) => (
       comentariosByPerito: {
         ...state.comentariosByPerito,
         [boardPeritoId]: (state.comentariosByPerito[boardPeritoId] ?? []).filter((c) => c.id !== id),
+      },
+    }))
+  },
+
+  toggleResolvido: async (boardPeritoId, id) => {
+    const { data, error } = await toggleComentarioResolvido(id)
+    if (error || !data) {
+      const message = String(error ?? 'Erro ao marcar comentário')
+      set({ error: message })
+      throw new Error(message)
+    }
+    set((state) => ({
+      comentariosByPerito: {
+        ...state.comentariosByPerito,
+        [boardPeritoId]: (state.comentariosByPerito[boardPeritoId] ?? []).map((c) =>
+          c.id === id
+            ? { ...c, resolvido: data.resolvido, resolvidoPor: data.resolvidoPor, resolvidoEm: data.resolvidoEm }
+            : c,
+        ),
       },
     }))
   },

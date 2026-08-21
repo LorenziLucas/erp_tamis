@@ -10,6 +10,9 @@ interface BoardComentarioDB {
   mencionados: string[]
   created_at: string
   updated_at: string
+  resolvido: boolean
+  resolvido_por: string | null
+  resolvido_em: string | null
 }
 
 function dbToBoardComentario(row: BoardComentarioDB): BoardComentario {
@@ -22,6 +25,9 @@ function dbToBoardComentario(row: BoardComentarioDB): BoardComentario {
     mencionados:   row.mencionados ?? [],
     createdAt:     row.created_at,
     updatedAt:     row.updated_at,
+    resolvido:     row.resolvido,
+    resolvidoPor:  row.resolvido_por,
+    resolvidoEm:   row.resolvido_em,
   }
 }
 
@@ -73,4 +79,32 @@ export async function deletarComentario(id: string): Promise<{ error: unknown }>
     .eq('id', id)
 
   return { error }
+}
+
+interface ToggleResolvidoDB {
+  id: string
+  resolvido: boolean
+  resolvido_por: string | null
+  resolvido_em: string | null
+}
+
+export async function toggleComentarioResolvido(
+  id: string,
+): Promise<{ data: Pick<BoardComentario, 'id' | 'resolvido' | 'resolvidoPor' | 'resolvidoEm'> | null; error: unknown }> {
+  const { data, error } = await supabase
+    .rpc('toggle_comentario_resolvido', { p_comentario_id: id })
+    .single()
+
+  if (!data) return { data: null, error }
+
+  const row = data as ToggleResolvidoDB
+  return {
+    data: {
+      id:           row.id,
+      resolvido:    row.resolvido,
+      resolvidoPor: row.resolvido_por,
+      resolvidoEm:  row.resolvido_em,
+    },
+    error,
+  }
 }

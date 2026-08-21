@@ -55,6 +55,9 @@ export interface BoardComentario {
   mencionados: string[]
   createdAt: string
   updatedAt: string
+  resolvido: boolean
+  resolvidoPor: string | null
+  resolvidoEm: string | null
 }
 
 export interface BoardHistorico {
