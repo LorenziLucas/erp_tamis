@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Search, PlusCircle, Upload, Download, X,
-  ChevronUp, ChevronDown, Pencil, Trash2, ChevronsUpDown,
+  ChevronUp, ChevronDown, Pencil, Trash2, Copy, ChevronsUpDown,
   FileSpreadsheet, AlertCircle, CheckCircle, ArrowLeft,
 } from 'lucide-react'
 import { useLotesStore } from '../../store/lotesStore'
@@ -50,6 +50,7 @@ export default function LotesPage() {
   const fetchLotes  = useLotesStore((s) => s.fetchLotes)
   const updateLote  = useLotesStore((s) => s.updateLote)
   const deleteLote  = useLotesStore((s) => s.deleteLote)
+  const addLote     = useLotesStore((s) => s.addLote)
   const addLotes    = useLotesStore((s) => s.addLotes)
   const loading     = useLotesStore((s) => s.loading)
   const { success, error: toastError } = useToast()
@@ -64,8 +65,9 @@ export default function LotesPage() {
   const [sortDir,      setSortDir]      = useState<SortDir>('desc')
   const [page,         setPage]         = useState(1)
 
-  const [editLote,  setEditLote]  = useState<Lote | null>(null)
-  const [deleteId,  setDeleteId]  = useState<string | null>(null)
+  const [editLote,      setEditLote]      = useState<Lote | null>(null)
+  const [deleteId,      setDeleteId]      = useState<string | null>(null)
+  const [duplicateLote, setDuplicateLote] = useState<Lote | null>(null)
 
   // ── Importar XLS (modal) ─────────────────────────────────────────────
   const [showImportar, setShowImportar] = useState(false)
@@ -216,6 +218,35 @@ export default function LotesPage() {
     success('Lote excluído.')
     setDeleteId(null)
   }
+
+  const handleDuplicate = async (data: LoteFormData & { regiao: string; qtdDias: number }) => {
+    await addLote(data)
+    success('Lote duplicado com sucesso!')
+    setDuplicateLote(null)
+  }
+
+  const duplicateDefaults: Partial<Lote> | undefined = duplicateLote
+    ? {
+        trt:          duplicateLote.trt,
+        trtId:        duplicateLote.trtId,
+        perito:       duplicateLote.perito,
+        peritoId:     duplicateLote.peritoId,
+        regiao:       duplicateLote.regiao,
+        lote:         duplicateLote.lote,
+        tipo:         duplicateLote.tipo,
+        formato:      duplicateLote.formato,
+        analise:      '2ª',
+        qtdAnalisada: duplicateLote.qtdAnalisada,
+        qtdTotal:     duplicateLote.qtdTotal,
+        analista:     '',
+        envio:        '',
+        entrega:      '',
+        mesRef:       '',
+        valorDevido:  0,
+        pago:         false,
+        qtdP:         0,
+      }
+    : undefined
 
   return (
     <div className="p-6">
@@ -377,6 +408,9 @@ export default function LotesPage() {
                         <Button variant="ghost" size="sm" onClick={() => setEditLote(l)} title="Editar">
                           <Pencil size={12} />
                         </Button>
+                        <Button variant="ghost" size="sm" onClick={() => setDuplicateLote(l)} title="Duplicar">
+                          <Copy size={12} />
+                        </Button>
                         <Button variant="ghost" size="sm" onClick={() => setDeleteId(l.id)} title="Excluir">
                           <Trash2 size={12} className="text-red-500" />
                         </Button>
@@ -431,6 +465,18 @@ export default function LotesPage() {
             onSubmit={handleUpdate}
             onCancel={() => setEditLote(null)}
             submitLabel="Salvar alterações"
+          />
+        )}
+      </Modal>
+
+      {/* Modal Duplicar */}
+      <Modal open={!!duplicateLote} onClose={() => setDuplicateLote(null)} title="Duplicar Lote" size="lg">
+        {duplicateLote && (
+          <LoteForm
+            defaultValues={duplicateDefaults}
+            onSubmit={handleDuplicate}
+            onCancel={() => setDuplicateLote(null)}
+            submitLabel="Criar lote"
           />
         )}
       </Modal>
