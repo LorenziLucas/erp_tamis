@@ -158,10 +158,15 @@ export const useBoardPeritosStore = create<BoardPeritosState>((set) => ({
     const analista = useAnalistasStore.getState().analistas.find((a) => a.id === analistaId)
     const perito = useBoardPeritosStore.getState().items.find((i) => i.id === boardPeritoId)
     if (analista?.email && perito) {
+      const regiao = perito.regiao?.trim()
+      const subject = regiao
+        ? `Você foi vinculado ao perito ${perito.nome} — ${regiao}`
+        : `Você foi vinculado ao perito ${perito.nome}`
+      const regiaoHtml = regiao ? ` — <strong>${regiao}</strong>` : ''
       notificarEmail({
         to: analista.email,
-        subject: `Você foi vinculado ao perito ${perito.nome}`,
-        html: `<p>Olá ${analista.nome},</p><p>Você foi vinculado ao acompanhamento do perito <strong>${perito.nome}</strong> no ERP Tamis.</p>`,
+        subject,
+        html: `<p>Olá ${analista.nome},</p><p>Você foi vinculado ao acompanhamento do perito <strong>${perito.nome}</strong>${regiaoHtml} no ERP Tamis.</p>`,
       })
     }
 
