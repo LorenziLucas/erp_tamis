@@ -11,6 +11,7 @@ import { notificarEmail, montarDestinatarios } from '../services/notificacoesSer
 import { useAuthStore } from './authStore'
 import { useAnalistasStore } from './analistasStore'
 import { useBoardPeritosStore } from './boardPeritosStore'
+import { getErrorMessage } from '../lib/errorUtils'
 
 function formatMesAno(mesRef: string | null): string {
   if (!mesRef) return '—'
@@ -34,6 +35,7 @@ interface BoardLotesState {
     updates: Partial<{ numero: number; mesRef: string | null; tipo: string | null; formato: string | null; entregue: boolean; ordem: number }>,
   ) => Promise<void>
   deleteLote: (boardPeritoId: string, id: string) => Promise<void>
+  clearError: () => void
 }
 
 export const useBoardLotesStore = create<BoardLotesState>((set) => ({
@@ -44,7 +46,7 @@ export const useBoardLotesStore = create<BoardLotesState>((set) => ({
   fetchLotes: async (boardPeritoId) => {
     set({ loading: true, error: null })
     const { data, error } = await listarBoardLotes(boardPeritoId)
-    if (error) { set({ loading: false, error: String(error) }); return }
+    if (error) { set({ loading: false, error: getErrorMessage(error) }); return }
     set((state) => ({
       lotesByPerito: { ...state.lotesByPerito, [boardPeritoId]: data },
       loading: false,
@@ -52,9 +54,10 @@ export const useBoardLotesStore = create<BoardLotesState>((set) => ({
   },
 
   addLote: async (boardPeritoId, dados) => {
+    set({ error: null })
     const { data, error } = await criarBoardLote(boardPeritoId, dados)
     if (error || !data) {
-      const message = String(error ?? 'Erro ao criar lote')
+      const message = getErrorMessage(error ?? 'Erro ao criar lote')
       set({ error: message })
       throw new Error(message)
     }
@@ -67,12 +70,13 @@ export const useBoardLotesStore = create<BoardLotesState>((set) => ({
   },
 
   updateLote: async (boardPeritoId, id, updates) => {
+    set({ error: null })
     const loteAnterior = (useBoardLotesStore.getState().lotesByPerito[boardPeritoId] ?? []).find((l) => l.id === id)
     const foiEntregueAgora = updates.entregue === true && loteAnterior?.entregue === false
 
     const { error } = await atualizarBoardLote(id, updates)
     if (error) {
-      const message = String(error)
+      const message = getErrorMessage(error)
       set({ error: message })
       throw new Error(message)
     }
@@ -126,9 +130,10 @@ export const useBoardLotesStore = create<BoardLotesState>((set) => ({
   },
 
   deleteLote: async (boardPeritoId, id) => {
+    set({ error: null })
     const { error } = await deletarBoardLote(id)
     if (error) {
-      const message = String(error)
+      const message = getErrorMessage(error)
       set({ error: message })
       throw new Error(message)
     }
@@ -139,4 +144,6 @@ export const useBoardLotesStore = create<BoardLotesState>((set) => ({
       },
     }))
   },
+
+  clearError: () => set({ error: null }),
 }))

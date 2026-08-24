@@ -10,6 +10,7 @@ import {
 import { notificarEmail, montarDestinatarios } from '../services/notificacoesService'
 import { useAnalistasStore } from './analistasStore'
 import { useBoardPeritosStore } from './boardPeritosStore'
+import { getErrorMessage } from '../lib/errorUtils'
 
 function escapeHtml(texto: string): string {
   return texto
@@ -36,6 +37,7 @@ interface BoardComentariosState {
   updateComentario: (boardPeritoId: string, id: string, texto: string, mencionados: string[]) => Promise<void>
   deleteComentario: (boardPeritoId: string, id: string) => Promise<void>
   toggleResolvido: (boardPeritoId: string, id: string) => Promise<void>
+  clearError: () => void
 }
 
 export const useBoardComentariosStore = create<BoardComentariosState>((set) => ({
@@ -46,7 +48,7 @@ export const useBoardComentariosStore = create<BoardComentariosState>((set) => (
   fetchComentarios: async (boardPeritoId) => {
     set({ loading: true, error: null })
     const { data, error } = await listarComentarios(boardPeritoId)
-    if (error) { set({ loading: false, error: String(error) }); return }
+    if (error) { set({ loading: false, error: getErrorMessage(error) }); return }
     set((state) => ({
       comentariosByPerito: { ...state.comentariosByPerito, [boardPeritoId]: data },
       loading: false,
@@ -54,9 +56,10 @@ export const useBoardComentariosStore = create<BoardComentariosState>((set) => (
   },
 
   addComentario: async (boardPeritoId, texto, mencionados, autorId, autorEmail) => {
+    set({ error: null })
     const { data, error } = await criarComentario(boardPeritoId, texto, mencionados, autorId, autorEmail)
     if (error || !data) {
-      const message = String(error ?? 'Erro ao criar comentário')
+      const message = getErrorMessage(error ?? 'Erro ao criar comentário')
       set({ error: message })
       throw new Error(message)
     }
@@ -100,9 +103,10 @@ export const useBoardComentariosStore = create<BoardComentariosState>((set) => (
   },
 
   updateComentario: async (boardPeritoId, id, texto, mencionados) => {
+    set({ error: null })
     const { error } = await atualizarComentario(id, texto, mencionados)
     if (error) {
-      const message = String(error)
+      const message = getErrorMessage(error)
       set({ error: message })
       throw new Error(message)
     }
@@ -117,9 +121,10 @@ export const useBoardComentariosStore = create<BoardComentariosState>((set) => (
   },
 
   deleteComentario: async (boardPeritoId, id) => {
+    set({ error: null })
     const { error } = await deletarComentario(id)
     if (error) {
-      const message = String(error)
+      const message = getErrorMessage(error)
       set({ error: message })
       throw new Error(message)
     }
@@ -132,9 +137,10 @@ export const useBoardComentariosStore = create<BoardComentariosState>((set) => (
   },
 
   toggleResolvido: async (boardPeritoId, id) => {
+    set({ error: null })
     const { data, error } = await toggleComentarioResolvido(id)
     if (error || !data) {
-      const message = String(error ?? 'Erro ao marcar comentário')
+      const message = getErrorMessage(error ?? 'Erro ao marcar comentário')
       set({ error: message })
       throw new Error(message)
     }
@@ -149,4 +155,6 @@ export const useBoardComentariosStore = create<BoardComentariosState>((set) => (
       },
     }))
   },
+
+  clearError: () => set({ error: null }),
 }))

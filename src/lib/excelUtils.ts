@@ -2,6 +2,7 @@ import * as XLSX from 'xlsx'
 import type { Lote } from '../types'
 import { COLUMN_MAP, REGIAO_MAP } from '../types'
 import { excelSerialToIso, generateId, calcDias } from './utils'
+import { getErrorMessage } from './errorUtils'
 
 export interface ImportResult {
   lotes: Lote[]
@@ -164,7 +165,7 @@ export function parseXlsx(file: File): Promise<ImportPreview> {
 
         resolve({ headers, rows: raw.slice(0, 5), total: raw.length, errors })
       } catch (err) {
-        resolve({ headers: [], rows: [], total: 0, errors: [`Erro ao ler arquivo: ${String(err)}`] })
+        resolve({ headers: [], rows: [], total: 0, errors: [`Erro ao ler arquivo: ${getErrorMessage(err)}`] })
       }
     }
     reader.readAsArrayBuffer(file)
@@ -286,13 +287,13 @@ export function importXlsx(file: File, existingLotes: Lote[] = []): Promise<Impo
               formato: formato as 'NOVO' | 'REVISÃO',
             })
           } catch (err) {
-            errors.push(`Linha ${i + 2}: ${String(err)}`)
+            errors.push(`Linha ${i + 2}: ${getErrorMessage(err)}`)
           }
         })
 
         resolve({ lotes, errors, total: raw.length, duplicates })
       } catch (err) {
-        resolve({ lotes: [], errors: [`Erro ao processar arquivo: ${String(err)}`], total: 0, duplicates: 0 })
+        resolve({ lotes: [], errors: [`Erro ao processar arquivo: ${getErrorMessage(err)}`], total: 0, duplicates: 0 })
       }
     }
     reader.readAsArrayBuffer(file)

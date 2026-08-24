@@ -13,6 +13,7 @@ import { notificarEmail, montarDestinatarios } from '../services/notificacoesSer
 import { registrarHistorico, listarHistorico } from '../services/boardHistoricoService'
 import { useAnalistasStore } from './analistasStore'
 import { useAuthStore } from './authStore'
+import { getErrorMessage } from '../lib/errorUtils'
 
 function statusLabel(status: BoardStatus): string {
   return BOARD_STATUS.find((s) => s.value === status)?.label ?? status
@@ -45,6 +46,8 @@ interface BoardPeritosState {
   removeAnalista: (boardPeritoId: string, analistaId: string) => Promise<void>
 
   fetchHistorico: (boardPeritoId: string) => Promise<void>
+
+  clearError: () => void
 }
 
 export const useBoardPeritosStore = create<BoardPeritosState>((set) => ({
@@ -58,11 +61,12 @@ export const useBoardPeritosStore = create<BoardPeritosState>((set) => ({
   fetchBoard: async () => {
     set({ loading: true, error: null })
     const { data, error } = await listarBoardPeritos()
-    if (error) { set({ loading: false, error: String(error) }); return }
+    if (error) { set({ loading: false, error: getErrorMessage(error) }); return }
     set({ items: data, loading: false })
   },
 
   updateItem: async (id, updates) => {
+    set({ error: null })
     const itemAnterior = useBoardPeritosStore.getState().items.find((i) => i.id === id)
     const statusMudou = 'status' in updates && !!updates.status && updates.status !== itemAnterior?.status
 
@@ -72,7 +76,7 @@ export const useBoardPeritosStore = create<BoardPeritosState>((set) => ({
 
     const { error } = await atualizarBoardPerito(id, dbUpdates)
     if (error) {
-      const message = String(error)
+      const message = getErrorMessage(error)
       set({ error: message })
       throw new Error(message)
     }
@@ -124,9 +128,10 @@ export const useBoardPeritosStore = create<BoardPeritosState>((set) => ({
   },
 
   deleteItem: async (id) => {
+    set({ error: null })
     const { error } = await deletarBoardPerito(id)
     if (error) {
-      const message = String(error)
+      const message = getErrorMessage(error)
       set({ error: message })
       throw new Error(message)
     }
@@ -134,15 +139,17 @@ export const useBoardPeritosStore = create<BoardPeritosState>((set) => ({
   },
 
   fetchAnalistasDoPerito: async (boardPeritoId) => {
+    set({ error: null })
     const { data, error } = await listarAnalistasDoPerito(boardPeritoId)
-    if (error) { set({ error: String(error) }); return }
+    if (error) { set({ error: getErrorMessage(error) }); return }
     set((state) => ({ analistasByPerito: { ...state.analistasByPerito, [boardPeritoId]: data } }))
   },
 
   addAnalista: async (boardPeritoId, analistaId) => {
+    set({ error: null })
     const { error } = await vincularAnalista(boardPeritoId, analistaId)
     if (error) {
-      const message = String(error)
+      const message = getErrorMessage(error)
       set({ error: message })
       throw new Error(message)
     }
@@ -165,11 +172,12 @@ export const useBoardPeritosStore = create<BoardPeritosState>((set) => ({
   },
 
   removeAnalista: async (boardPeritoId, analistaId) => {
+    set({ error: null })
     const analista = useAnalistasStore.getState().analistas.find((a) => a.id === analistaId)
 
     const { error } = await desvincularAnalista(boardPeritoId, analistaId)
     if (error) {
-      const message = String(error)
+      const message = getErrorMessage(error)
       set({ error: message })
       throw new Error(message)
     }
@@ -187,8 +195,11 @@ export const useBoardPeritosStore = create<BoardPeritosState>((set) => ({
   },
 
   fetchHistorico: async (boardPeritoId) => {
+    set({ error: null })
     const { data, error } = await listarHistorico(boardPeritoId)
-    if (error) { set({ error: String(error) }); return }
+    if (error) { set({ error: getErrorMessage(error) }); return }
     set((state) => ({ historicoByPerito: { ...state.historicoByPerito, [boardPeritoId]: data } }))
   },
+
+  clearError: () => set({ error: null }),
 }))

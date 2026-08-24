@@ -1037,7 +1037,7 @@ function DetailModal({
 // ── Página ───────────────────────────────────────────────────────────────────────
 
 export default function BoardPeritosPage() {
-  const { items, loading, error, fetchBoard } = useBoardPeritosStore()
+  const { items, loading, error, fetchBoard, clearError } = useBoardPeritosStore()
   const lotesByPerito = useBoardLotesStore((s) => s.lotesByPerito)
   const fetchLotes = useBoardLotesStore((s) => s.fetchLotes)
   const analistasByPerito = useBoardPeritosStore((s) => s.analistasByPerito)
@@ -1241,8 +1241,15 @@ export default function BoardPeritosPage() {
       </div>
 
       {error && (
-        <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
-          {error}
+        <div className="flex items-center justify-between gap-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+          <span>{error}</span>
+          <button
+            onClick={clearError}
+            className="shrink-0 text-red-600 hover:text-red-800"
+            aria-label="Fechar mensagem de erro"
+          >
+            <X size={14} />
+          </button>
         </div>
       )}
 

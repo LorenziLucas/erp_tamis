@@ -8,6 +8,7 @@ import {
   createTRT as svcCreateTRT,
   updateTRT as svcUpdateTRT,
 } from '../services/peritosService'
+import { getErrorMessage } from '../lib/errorUtils'
 
 interface PeritosState {
   trts:     TRT[]
@@ -21,6 +22,7 @@ interface PeritosState {
   updatePerito: (id: string, nome: string, trtIds: string[]) => Promise<void>
   createTRT:    (numero: number, cidadeSede: string, uf: string) => Promise<void>
   updateTRT:    (id: string, numero: number, cidadeSede: string, uf: string) => Promise<void>
+  clearError:   () => void
 }
 
 export const usePeritosStore = create<PeritosState>((set, get) => ({
@@ -32,14 +34,14 @@ export const usePeritosStore = create<PeritosState>((set, get) => ({
   fetchTRTs: async () => {
     set({ loading: true, error: null })
     const { data, error } = await getTRTs()
-    if (error) { set({ loading: false, error: String(error) }); return }
+    if (error) { set({ loading: false, error: getErrorMessage(error) }); return }
     set({ trts: data, loading: false })
   },
 
   fetchPeritos: async () => {
     set({ loading: true, error: null })
     const { data, error } = await getPeritos()
-    if (error) { set({ loading: false, error: String(error) }); return }
+    if (error) { set({ loading: false, error: getErrorMessage(error) }); return }
     set({ peritos: data, loading: false })
   },
 
@@ -47,7 +49,7 @@ export const usePeritosStore = create<PeritosState>((set, get) => ({
     set({ loading: true, error: null })
     const { data, error } = await svcCreatePerito(nome, trtIds)
     if (error || !data) {
-      const message = String(error ?? 'Erro ao criar perito')
+      const message = getErrorMessage(error ?? 'Erro ao criar perito')
       set({ loading: false, error: message })
       throw new Error(message)
     }
@@ -58,7 +60,7 @@ export const usePeritosStore = create<PeritosState>((set, get) => ({
     set({ loading: true, error: null })
     const { error } = await svcUpdatePerito(id, nome, trtIds)
     if (error) {
-      const message = String(error)
+      const message = getErrorMessage(error)
       set({ loading: false, error: message })
       throw new Error(message)
     }
@@ -69,7 +71,7 @@ export const usePeritosStore = create<PeritosState>((set, get) => ({
     set({ loading: true, error: null })
     const { data, error } = await svcCreateTRT(numero, cidadeSede, uf)
     if (error || !data) {
-      const message = String(error ?? 'Erro ao criar TRT')
+      const message = getErrorMessage(error ?? 'Erro ao criar TRT')
       set({ loading: false, error: message })
       throw new Error(message)
     }
@@ -80,10 +82,12 @@ export const usePeritosStore = create<PeritosState>((set, get) => ({
     set({ loading: true, error: null })
     const { error } = await svcUpdateTRT(id, numero, cidadeSede, uf)
     if (error) {
-      const message = String(error)
+      const message = getErrorMessage(error)
       set({ loading: false, error: message })
       throw new Error(message)
     }
     await get().fetchTRTs()
   },
+
+  clearError: () => set({ error: null }),
 }))
