@@ -9,10 +9,19 @@ if (!supabaseUrl || !supabaseAnon) {
   )
 }
 
+// Sessões persistidas antes da migração para sessionStorage devem ser descartadas,
+// senão o usuário continuaria logado indefinidamente a partir do localStorage antigo.
+try {
+  window.localStorage.removeItem('sb-bkowencwuzniyiecefam-auth-token')
+} catch {
+  // localStorage indisponível (modo privado, etc.) — segue sem interromper o app
+}
+
 export const supabase = createClient(supabaseUrl, supabaseAnon, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
+    storage: window.sessionStorage,
   },
 })

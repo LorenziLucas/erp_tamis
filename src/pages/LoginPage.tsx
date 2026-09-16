@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useState, useEffect, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, LogIn } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
@@ -11,11 +11,25 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [showPass, setShowPass] = useState(false)
   const [error,    setError]    = useState('')
+  const [infoMessage, setInfoMessage] = useState('')
   const [loading,  setLoading]  = useState(false)
   const [shake,    setShake]    = useState(false)
 
+  useEffect(() => {
+    try {
+      const motivo = window.sessionStorage.getItem('logout_motivo')
+      if (motivo === 'inatividade') {
+        window.sessionStorage.removeItem('logout_motivo')
+        setInfoMessage('Sua sessão foi encerrada por inatividade.')
+      }
+    } catch {
+      // sessionStorage indisponível — não há flag para exibir
+    }
+  }, [])
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
+    setInfoMessage('')
     if (!email.trim() || !password) {
       setError('Preencha e-mail e senha.')
       return
@@ -94,7 +108,7 @@ export default function LoginPage() {
               <input
                 type="email"
                 value={email}
-                onChange={(e) => { setEmail(e.target.value); setError('') }}
+                onChange={(e) => { setEmail(e.target.value); setError(''); setInfoMessage('') }}
                 placeholder="seu@email.com"
                 autoFocus
                 autoComplete="email"
@@ -115,7 +129,7 @@ export default function LoginPage() {
                 <input
                   type={showPass ? 'text' : 'password'}
                   value={password}
-                  onChange={(e) => { setPassword(e.target.value); setError('') }}
+                  onChange={(e) => { setPassword(e.target.value); setError(''); setInfoMessage('') }}
                   placeholder="••••••••"
                   autoComplete="current-password"
                   className="
@@ -134,6 +148,14 @@ export default function LoginPage() {
                 </button>
               </div>
             </div>
+
+            {/* Mensagem informativa */}
+            {infoMessage && (
+              <div className="flex items-center gap-2 text-xs text-[#1B4D2E] bg-[#F5F9F6] border border-[#CFDED5] rounded-lg px-3 py-2">
+                <span className="shrink-0">ⓘ</span>
+                {infoMessage}
+              </div>
+            )}
 
             {/* Erro */}
             {error && (
