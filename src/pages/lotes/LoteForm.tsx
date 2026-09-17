@@ -9,34 +9,29 @@ import { ANALISTA_OPTIONS, TIPO_OPTIONS, FORMATO_OPTIONS, ANALISE_OPTIONS } from
 import { calcDias } from '../../lib/utils'
 import type { Lote } from '../../types'
 
-function computeValorDevido(analista: string, formato: string, qtdAnalisada: number, tipo: string): number | null {
-  if (tipo === 'CONF. ALVARÁ' && formato === 'REVISÃO')
-    return Math.round(qtdAnalisada * 1 * 100) / 100
+function valorMultiplicador(analista: string, formato: string, analise: string, tipo: string): number {
+  if (tipo === 'CONF. ALVARÁ' && formato === 'REVISÃO') return 1
   const first = analista.trim().split(' ')[0].toLowerCase()
   if (first === 'rodrigo') return 0
-  if (first === 'matheus') return Math.round(qtdAnalisada * 1.5 * 100) / 100
-  if (first === 'mabel')   return Math.round(qtdAnalisada * 1.5 * 100) / 100
-  if (first === 'renatha') {
-    const mult = formato === 'REVISÃO' ? 1.5 : 2
-    return Math.round(qtdAnalisada * mult * 100) / 100
-  }
-  return null
+  if (analise === '2ª') return 1.5
+  if (analise === '1ª' && formato === 'NOVO') return 2
+  return 1.5
 }
 
-function valorFormulaLabel(analista: string, formato: string, qtdAnalisada: number, tipo: string): string {
+function computeValorDevido(analista: string, formato: string, qtdAnalisada: number, analise: string, tipo: string): number | null {
+  const mult = valorMultiplicador(analista, formato, analise, tipo)
+  return Math.round(qtdAnalisada * mult * 100) / 100
+}
+
+function valorFormulaLabel(analista: string, formato: string, qtdAnalisada: number, analise: string, tipo: string): string {
   const f2 = (n: number) => n.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
   if (tipo === 'CONF. ALVARÁ' && formato === 'REVISÃO')
     return `CONF. ALVARÁ (REVISÃO): ${qtdAnalisada} × R$ 1,00 = R$ ${f2(qtdAnalisada * 1)}`
   const first = analista.trim().split(' ')[0]
-  const fl    = first.toLowerCase()
-  if (fl === 'rodrigo') return `${first}: valor fixo R$ 0,00`
-  if (fl === 'matheus') return `${first}: ${qtdAnalisada} × R$ 1,50 = R$ ${f2(qtdAnalisada * 1.5)}`
-  if (fl === 'mabel')   return `${first}: ${qtdAnalisada} × R$ 1,50 = R$ ${f2(qtdAnalisada * 1.5)}`
-  if (fl === 'renatha') {
-    const mult = formato === 'REVISÃO' ? 1.5 : 2
-    return `${first} (${formato}): ${qtdAnalisada} × R$ ${f2(mult)} = R$ ${f2(qtdAnalisada * mult)}`
-  }
-  return ''
+  if (first.toLowerCase() === 'rodrigo') return `${first}: valor fixo R$ 0,00`
+  const mult = valorMultiplicador(analista, formato, analise, tipo)
+  const etapa = analise === '1ª' ? `1ª análise (${formato})` : '2ª análise'
+  return `${etapa}: ${qtdAnalisada} × R$ ${f2(mult)} = R$ ${f2(qtdAnalisada * mult)}`
 }
 
 const schema = z.object({
@@ -109,6 +104,7 @@ export function LoteForm({ defaultValues, onSubmit, onCancel, submitLabel = 'Sal
   const entrega      = watch('entrega')
   const analista     = watch('analista')
   const formato      = watch('formato')
+  const analise      = watch('analise')
   const tipo         = watch('tipo')
   const qtdAnalisada = watch('qtdAnalisada')
 
@@ -124,11 +120,11 @@ export function LoteForm({ defaultValues, onSubmit, onCancel, submitLabel = 'Sal
   }, [envio, entrega, setValue])
 
   useEffect(() => {
-    const computed = computeValorDevido(analista, formato, qtdAnalisada, tipo)
+    const computed = computeValorDevido(analista, formato, qtdAnalisada, analise, tipo)
     if (computed !== null) setValue('valorDevido', computed)
-  }, [analista, formato, tipo, qtdAnalisada, setValue])
+  }, [analista, formato, analise, tipo, qtdAnalisada, setValue])
 
-  const isValorAuto = computeValorDevido(analista, formato, qtdAnalisada, tipo) !== null
+  const isValorAuto = computeValorDevido(analista, formato, qtdAnalisada, analise, tipo) !== null
 
   function mesRefLabel(): string {
     const base = entrega || envio
@@ -273,7 +269,7 @@ export function LoteForm({ defaultValues, onSubmit, onCancel, submitLabel = 'Sal
           />
           {isValorAuto && analista && (
             <p className="mt-1 text-[11px] text-[#1B4D2E]/70 leading-snug">
-              ⚡ {valorFormulaLabel(analista, formato, qtdAnalisada, tipo)}
+              ⚡ {valorFormulaLabel(analista, formato, qtdAnalisada, analise, tipo)}
             </p>
           )}
         </FormField>
