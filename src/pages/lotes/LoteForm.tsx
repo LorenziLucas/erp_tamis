@@ -9,29 +9,33 @@ import { ANALISTA_OPTIONS, TIPO_OPTIONS, FORMATO_OPTIONS, ANALISE_OPTIONS } from
 import { calcDias } from '../../lib/utils'
 import type { Lote } from '../../types'
 
-function valorMultiplicador(analista: string, formato: string, analise: string, tipo: string): number {
-  if (tipo === 'CONF. ALVARÁ' && formato === 'REVISÃO') return 1
+// O valor depende apenas de analista, formato e tipo — `analise` é ignorado (vale igual em 1ª e 2ª).
+function computeValorDevido(analista: string, formato: string, qtdAnalisada: number, _analise: string, tipo: string): number | null {
   const first = analista.trim().split(' ')[0].toLowerCase()
   if (first === 'rodrigo') return 0
-  if (analise === '2ª') return 1.5
-  if (analise === '1ª' && formato === 'NOVO') return 2
-  return 1.5
+  if (tipo === 'CONF. ALVARÁ' && formato === 'REVISÃO')
+    return Math.round(qtdAnalisada * 1 * 100) / 100
+  if (first === 'matheus') return Math.round(qtdAnalisada * 1.5 * 100) / 100
+  if (first === 'renatha' || first === 'mabel') {
+    const mult = formato === 'REVISÃO' ? 1.5 : 2
+    return Math.round(qtdAnalisada * mult * 100) / 100
+  }
+  return null
 }
 
-function computeValorDevido(analista: string, formato: string, qtdAnalisada: number, analise: string, tipo: string): number | null {
-  const mult = valorMultiplicador(analista, formato, analise, tipo)
-  return Math.round(qtdAnalisada * mult * 100) / 100
-}
-
-function valorFormulaLabel(analista: string, formato: string, qtdAnalisada: number, analise: string, tipo: string): string {
+function valorFormulaLabel(analista: string, formato: string, qtdAnalisada: number, _analise: string, tipo: string): string {
   const f2 = (n: number) => n.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
+  const first = analista.trim().split(' ')[0]
+  const fl    = first.toLowerCase()
+  if (fl === 'rodrigo') return `${first}: valor fixo R$ 0,00`
   if (tipo === 'CONF. ALVARÁ' && formato === 'REVISÃO')
     return `CONF. ALVARÁ (REVISÃO): ${qtdAnalisada} × R$ 1,00 = R$ ${f2(qtdAnalisada * 1)}`
-  const first = analista.trim().split(' ')[0]
-  if (first.toLowerCase() === 'rodrigo') return `${first}: valor fixo R$ 0,00`
-  const mult = valorMultiplicador(analista, formato, analise, tipo)
-  const etapa = analise === '1ª' ? `1ª análise (${formato})` : '2ª análise'
-  return `${etapa}: ${qtdAnalisada} × R$ ${f2(mult)} = R$ ${f2(qtdAnalisada * mult)}`
+  if (fl === 'matheus') return `${first}: ${qtdAnalisada} × R$ 1,50 = R$ ${f2(qtdAnalisada * 1.5)}`
+  if (fl === 'renatha' || fl === 'mabel') {
+    const mult = formato === 'REVISÃO' ? 1.5 : 2
+    return `${first} (${formato}): ${qtdAnalisada} × R$ ${f2(mult)} = R$ ${f2(qtdAnalisada * mult)}`
+  }
+  return ''
 }
 
 const schema = z.object({
